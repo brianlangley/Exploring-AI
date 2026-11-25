@@ -38,6 +38,15 @@ export const nl: Messages = {
     ],
   },
 
+  tour: {
+    eyebrow: 'Rondleiding · 3D',
+    title: 'Liever kijken dan lezen?',
+    text: (steps: number) => `Van 1950 tot nu in ${steps} stappen. Loop langs machines die een hele kamer vulden, kom uit bij een AI-model op de laptop voor je neus en probeer het daarna zelf op een nagebootst bureaublad.`,
+    start: 'Start de intro',
+    keys: 'Klik, of gebruik de pijltjestoetsen of een presentatieclicker',
+    now: 'jouw laptop',
+  },
+
   what: {
     eyebrow: '01 · De tool',
     title: 'Een desktop-app die open AI-modellen lokaal draait',

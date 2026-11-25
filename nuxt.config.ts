@@ -16,6 +16,11 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // The long page used to live here; it is the home page now. Old links keep working.
+  routeRules: {
+    '/lm-studio': { redirect: { to: '/', statusCode: 301 } },
+  },
+
   // One fixed theme, no light/dark switching: the palette lives on :root in main.css.
   ui: { colorMode: false },
 

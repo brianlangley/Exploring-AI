@@ -171,7 +171,7 @@ Status: v3 approved with these changes. Any assistant picking this up: read this
 4. Live demo model: Qwen3.5 9B only if it loads quickly on the presentation laptop (test tonight); otherwise Ministral 3 3B (`mistralai/ministral-3-3b`, 2.0 GB) in both the live demo and the mock.
 
 ### 9.2 Route changes
-- The site really starts with the intro route; the long content page comes after it. The header menu has an "Intro" item that goes back to the start.
+- Update 25 November 2026: the site now starts with the long content page at `/`; the intro route moved to `/intro`, opened from the hero button, a teaser card under the hero and the header's "Intro" item. `/lm-studio` redirects to `/`, and old step links (`/#jouw-computer`) are sent on to `/intro#jouw-computer`.
 - Step 4 (1966–1997): no LM Studio logo on the old CRTs (LM Studio launched May 2023; the logo there is wrong and decorative use of their mark). Show period content: an ELIZA style dialogue (`> I AM SAD` / `WHY ARE YOU SAD?`) or chess moves (`e4 e5 Nf3`).
 - Step 5 (2012): a GPU close-up instead of the webcam (AlexNet was about GPUs). The webcam only as a small side prop if it already works, with its maker mark hidden.
 - Step 10 or 12 (gebruiksgemak): a "30 minute test" card with Brian's measured times (install, first model download, first answer). Measured, never estimated.
@@ -213,7 +213,7 @@ Moved to next week: the 3D mock computer (steps 10 to 12), CSS3DRenderer, the De
 ## 10. Status after the build of 25 November 2026 (evening)
 
 Built (at the repo root):
-- `/` is the presentation route (15 steps); `/lm-studio` is the long read page. The header of the read page has "Intro" back to `/`.
+- `/` is the long read page; `/intro` is the presentation route (15 steps). `/lm-studio` redirects to `/`. The header of the read page has "Intro" to `/intro`; the route links back to `/`.
 - Steps: intro (dark room, 80s terminal types the question) → dive into the screen with grid scan → 1950 plugboard → 1966–1997 old computers (CRTs show ELIZA and chess) → 2012 RTX 3080 (brand text painted out, fans spin) → 2022 data centre (rows and aisles of racks) → 2026 cleaned gaming PC → what it is → your device (fans turn green / amber / red with the device check, based on the demo model) → models (+ floppy fact) → demo (mock computer on the 3D monitor) → costs → verdict → alternatives (new table) → build further (phone, Raspberry Pi + smart home panel, server on pedestals with light cables) → end (back to the terminal: "AI IS NU LOKAAL.").
 - Mock computer (`MockComputer.vue`, `MockLmStudio.vue`, `useMockComputer.ts`): desktop → browser on the download page → installer → Discover (Q4_K_M) → model download → load (memory bar from the device check) → chat (scripted answer streams) → Developer (server + curl + JSON). → / clicker runs each action, then moves on.
 - Floppy helper with googly eyes and one tip per step; hide for the session.

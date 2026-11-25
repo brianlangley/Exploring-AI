@@ -1,30 +1,27 @@
 <script setup lang="ts">
-// The site starts here: the presentation route (PLAN-v3). The long content page is /lm-studio.
-definePageMeta({ layout: false })
+import { PRESENTATION_STEPS } from '~/utils/presentationSteps'
 
-const { readHash, step } = usePresentation()
-usePresentationKeys()
-// A link like /#jouw-computer opens that step, on load and when the hash changes later.
+// The site: the long page, readable without 3D. The presentation route is /intro.
+// Links from when the route lived at `/` (like /#jouw-computer) carry a step slug: send those on to that step.
+// Step slugs are Dutch and section ids English, so a section anchor (#costs) never matches.
 onMounted(() => {
-  readHash()
-  window.addEventListener('hashchange', readHash)
+  const slug = decodeURIComponent(location.hash.slice(1))
+  if (PRESENTATION_STEPS.some(step => step.slug === slug)) navigateTo(`/intro#${slug}`, { replace: true })
 })
-onBeforeUnmount(() => window.removeEventListener('hashchange', readHash))
 </script>
 
 <template>
-  <div class="relative h-dvh overflow-hidden">
-    <ClientOnly>
-      <PresentationStage />
-    </ClientOnly>
-    <!-- Retro layer only on the history steps (PLAN-v3 section 11). -->
-    <div v-if="step.world === 'road'" class="scanlines pointer-events-none absolute inset-0" aria-hidden="true" />
-    <div class="pointer-events-none absolute inset-0 z-10">
-      <StepPanel />
-      <ClientOnly>
-        <FloppyHelper />
-      </ClientOnly>
-      <PresentationChrome />
-    </div>
+  <div>
+    <HeroSection />
+    <IntroTeaser />
+    <WhatIsSection />
+    <DeviceCheck />
+    <ModelPicker />
+    <DownloadSection />
+    <CostsSection />
+    <VerdictSection />
+    <AlternativesSection />
+    <FurtherSection />
+    <SourcesSection />
   </div>
 </template>

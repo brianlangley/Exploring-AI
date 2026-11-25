@@ -119,7 +119,7 @@ onBeforeUnmount(() => mm?.revert())
         </p>
         <div data-intro class="flex flex-wrap justify-center gap-3">
           <UButton to="#device" size="xl" :label="copy.checkDevice" trailing-icon="i-lucide-arrow-down" />
-          <UButton to="/" size="xl" color="neutral" variant="ghost" :label="copy.watchIntro" icon="i-lucide-play" />
+          <UButton to="/intro" size="xl" color="neutral" variant="ghost" :label="copy.watchIntro" icon="i-lucide-play" />
         </div>
       </div>
 

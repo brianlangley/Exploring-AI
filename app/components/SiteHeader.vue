@@ -18,10 +18,10 @@ function toggleLocale() {
         <!-- One line that scrolls sideways on small screens instead of wrapping the bar. -->
         <nav :aria-label="messages.header.navLabel" class="overflow-x-auto [scrollbar-width:none] max-md:shrink-0 md:min-w-0">
           <ul class="flex gap-x-6 whitespace-nowrap py-1 text-xs font-medium">
-            <!-- Back to the start of the presentation route. -->
+            <!-- The 3D presentation route lives on its own page. -->
             <li>
               <NuxtLink
-                to="/"
+                to="/intro"
                 class="inline-flex items-center gap-1 rounded-sm text-primary transition-colors hover:text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
               >
                 <UIcon name="i-lucide-play" class="size-3.5" />

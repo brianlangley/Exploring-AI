@@ -84,7 +84,7 @@ watch(() => step.value.id, () => scroller.value?.scrollTo({ top: 0 }))
         {{ messages.route.end.text }}
       </p>
       <div class="mt-4 flex flex-wrap gap-3">
-        <UButton to="/lm-studio" size="lg" :label="messages.route.end.toSite" trailing-icon="i-lucide-arrow-right" />
+        <UButton to="/" size="lg" :label="messages.route.end.toSite" trailing-icon="i-lucide-arrow-right" />
         <UButton size="lg" color="neutral" variant="outline" :label="messages.route.end.restart" icon="i-lucide-rotate-ccw" @click="goTo(0)" />
       </div>
     </div>

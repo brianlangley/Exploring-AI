@@ -15,7 +15,7 @@ function toggleLocale() {
 <template>
   <!-- Top bar: title, language, way out to the normal site. -->
   <header class="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-    <NuxtLink to="/lm-studio" class="rounded-sm font-display text-lg font-semibold tracking-tight text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+    <NuxtLink to="/" class="rounded-sm font-display text-lg font-semibold tracking-tight text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
       {{ messages.header.title }}
     </NuxtLink>
     <div class="flex items-center gap-2">
@@ -29,7 +29,7 @@ function toggleLocale() {
         :lang="locale === 'nl' ? 'en' : 'nl'"
         @click="toggleLocale"
       />
-      <UButton size="sm" color="neutral" variant="outline" to="/lm-studio" :label="messages.route.toSite" trailing-icon="i-lucide-arrow-right" />
+      <UButton size="sm" color="neutral" variant="outline" to="/" :label="messages.route.toSite" trailing-icon="i-lucide-arrow-right" />
     </div>
   </header>
 

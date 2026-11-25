@@ -37,6 +37,16 @@ export const en = {
     ],
   },
 
+  // Card under the hero that opens the 3D presentation route at /intro.
+  tour: {
+    eyebrow: 'Guided tour · 3D',
+    title: 'Rather watch than read?',
+    text: (steps: number) => `From 1950 to today in ${steps} steps. Walk past machines that filled a whole room, arrive at an AI model running on the laptop in front of you, then try it yourself on a simulated desktop.`,
+    start: 'Start the intro',
+    keys: 'Click, or use the arrow keys or a presentation clicker',
+    now: 'your laptop',
+  },
+
   what: {
     eyebrow: '01 · The tool',
     title: 'A desktop app that runs open AI models locally',
