@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { StepId } from '~/utils/presentationSteps'
 
-const { step, goTo } = usePresentation()
+const { step, goTo, isStageMoving } = usePresentation()
 const { messages } = useLocale()
 
 // Sections render in their compact panel form inside this card.
@@ -41,7 +41,7 @@ watch(() => step.value.id, () => scroller.value?.scrollTo({ top: 0 }))
   <!-- History: a small caption card, top left (Floppy sits bottom left). -->
   <Transition mode="out-in" enter-from-class="opacity-0 translate-y-2" leave-to-class="opacity-0" enter-active-class="transition duration-700 ease-out motion-reduce:transition-none" leave-active-class="transition duration-200 motion-reduce:transition-none">
     <div
-      v-if="step.panel === 'caption' && caption"
+      v-if="step.panel === 'caption' && caption && !isStageMoving"
       :key="step.id"
       class="pointer-events-auto absolute top-16 left-4 max-w-md glass p-6 sm:left-8"
       aria-live="polite"

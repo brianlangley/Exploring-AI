@@ -2,311 +2,328 @@ import type * as Three from 'three'
 
 type ThreeModule = typeof Three
 
-// Screen area inside the terminal's texture atlas (pixels in the 1024 px texture, measured on the file).
-const SCREEN_RECT = { x: 552, y: 308, width: 273, height: 185 }
-const PHOSPHOR = '#33ff66'
-// Room box in room units: desk against the back wall, window with blinds on the right, the visitor walks in from the front.
-const ROOM = { minX: -2.4, maxX: 3.2, height: 2.7, minZ: -0.9, maxZ: 4.4 }
-const CRT_GLOW = 1.6
-const LAMP_POWER = 14
-const WINDOW_POWER = 40
+// The start and end room: "Basement Home Office" (Fatih174, CC BY 4.0), see public/models/CREDITS.md.
+const ROOM_FILE = 'basement-office.glb'
+// The main monitor's centre sits this high above the floor: the whole room is scaled to match (metres).
+const SCREEN_HEIGHT = 1.15
+// Posters with third-party logos or characters (Warner Bros / DC, the Superman shield, a Batman silhouette,
+// an orchestra's logo): shown as plain card instead.
+const PLAIN_POSTERS = ['mad_max_fury_road_web_by_3ftdeep-d8qr5za.001', 'obey_the_god', 'fear_the_dark', 'fear_the_dark.001']
+// The file's neon sign; replaced by the official LM Studio logo (white outline version, unchanged) lit as a sign.
+const NEON_MATERIAL = 'neon_sign'
+const SCREEN_MATERIALS = ['screen', 'screen.001']
+const LIGHT_MATERIALS = ['bulp', 'lamba_effaf']
+const LOGO_FILE = '/brand/LM Studio Logo Monochrome Outline White.svg'
+// Night in the basement: the screens, the sign and one dim lamp do the lighting.
+const SCREEN_GLOW = 0.3
+const LAMP_POWER = 0.5
+const NEON_POWER = 0.8
+const FILL_LIGHT = 0.08
+// Easter egg on the second monitor: now and then code rain fades in and a small white pixel rabbit (our own pixel art,
+// side view) hops across it, then the rain fades out again. Never in the first seconds after the room appears.
+const RABBIT_SITTING = [
+  '........#.#.',
+  '........#.#.',
+  '.......#####',
+  '.......##.##',
+  '..#########.',
+  '############',
+  '.##########.',
+  '..##...##...',
+]
+// In the air: back legs stretched out behind.
+const RABBIT_JUMPING = [...RABBIT_SITTING.slice(0, 7), '##......##..']
+const RABBIT_FIRST_SECONDS = 10
+const RABBIT_FADE_SECONDS = 0.8
+const RABBIT_HOP_SECONDS = 5
+const RABBIT_HOP_LENGTH_SECONDS = 0.55
+const RABBIT_GAP_SECONDS = [10, 25] as const
+const RAIN_GLYPHS = '0123456789+-*/=<>{}[]#%'
 
 export interface TerminalRoom {
   group: Three.Group
-  // World position of the middle of the screen: the camera dives into it.
+  // Middle of the main monitor (room coordinates). The monitor faces +z: the camera dives into it.
   screenCenter: Three.Vector3
+  // Where the visitor stands on page load, before walking up to the desk (room coordinates).
+  entrance: Three.Vector3
+  // Middle of the LM Studio sign on the back wall (room coordinates), when the model has one.
+  signCenter: Three.Vector3 | undefined
   setLines: (lines: string[], cursorOn: boolean) => void
   // 0 = calm, 1 = the screen floods the room (diving in or coming back out).
   setSurge: (amount: number) => void
-  // CRT flicker and drifting dust.
+  // Screen flicker.
   update: (seconds: number) => void
 }
 
-// Step 1 and the end: a dim, cluttered apartment at night. Green walls, a mattress on the floor, a desk full of old machines,
-// one small barred window high up. The terminal's glow is the main light.
-export async function buildTerminalRoom(THREE: ThreeModule): Promise<TerminalRoom> {
+// `onEggStart` runs when the rain and rabbit begin on the second monitor (for a sound).
+export async function buildTerminalRoom(THREE: ThreeModule, onEggStart?: () => void): Promise<TerminalRoom> {
   const group = new THREE.Group()
-  const box = (width: number, height: number, depth: number, material: Three.Material, x: number, y: number, z: number) => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material)
-    mesh.position.set(x, y, z)
-    mesh.castShadow = mesh.receiveShadow = true
-    group.add(mesh)
-    return mesh
-  }
-
-  // Walls, floor and ceiling: one box seen from inside.
-  const shell = new THREE.Mesh(
-    new THREE.BoxGeometry(ROOM.maxX - ROOM.minX, ROOM.height, ROOM.maxZ - ROOM.minZ),
-    new THREE.MeshStandardMaterial({ color: '#2e3a2c', roughness: 0.95, side: THREE.BackSide }),
-  )
-  shell.position.set((ROOM.minX + ROOM.maxX) / 2, ROOM.height / 2, (ROOM.minZ + ROOM.maxZ) / 2)
-  shell.receiveShadow = true
-  group.add(shell)
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.maxX - ROOM.minX, ROOM.maxZ - ROOM.minZ), new THREE.MeshStandardMaterial({ color: '#1b1e19', roughness: 0.85 }))
-  floor.rotation.x = -Math.PI / 2
-  floor.position.set(shell.position.x, 0.002, shell.position.z)
-  floor.receiveShadow = true
-  group.add(floor)
-
-  // Desk.
-  const wood = new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 0.85 })
-  const metal = new THREE.MeshStandardMaterial({ color: '#3a3f47', roughness: 0.6, metalness: 0.4 })
-  box(1.8, 0.06, 1.0, wood, 0, 0.72, 0)
-  for (const [x, z] of [[-0.85, -0.45], [0.85, -0.45], [-0.85, 0.45], [0.85, 0.45]] as const) box(0.05, 0.72, 0.05, metal, x, 0.36, z)
-
-  // Small barred window high in the back wall: cold night light falls in a striped beam across the floor.
-  const windowX = 1.7
-  const windowY = 2.2
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.5), new THREE.MeshBasicMaterial({ color: '#8fa3c4', toneMapped: false }))
-  glass.position.set(windowX, windowY, ROOM.minZ + 0.01)
-  group.add(glass)
-  const slatMaterial = new THREE.MeshStandardMaterial({ color: '#1d211c', roughness: 0.7 })
-  for (let index = 0; index < 6; index++) box(0.03, 0.56, 0.04, slatMaterial, windowX - 0.3 + index * 0.12, windowY, ROOM.minZ + 0.05)
-  box(0.76, 0.04, 0.05, slatMaterial, windowX, windowY, ROOM.minZ + 0.05)
-  const moon = new THREE.SpotLight('#8aa6ff', WINDOW_POWER, 12, 0.22, 0.4, 1.2)
-  moon.position.set(windowX + 0.2, windowY + 1.1, ROOM.minZ - 2.2)
-  moon.target.position.set(1.4, 0, 2.2)
-  moon.castShadow = true
-  moon.shadow.mapSize.set(1024, 1024)
-  moon.shadow.bias = -0.0005
-  group.add(moon, moon.target)
-
-  // Office chair, pushed back a little, as if someone just got up.
-  const fabric = new THREE.MeshStandardMaterial({ color: '#141516', roughness: 0.9 })
-  const chair = new THREE.Group()
-  chair.position.set(-0.85, 0, 1.0)
-  chair.rotation.y = 0.9
-  const chairPart = (geometry: Three.BufferGeometry, material: Three.Material, x: number, y: number, z: number) => {
-    const mesh = new THREE.Mesh(geometry, material)
-    mesh.position.set(x, y, z)
-    mesh.castShadow = true
-    chair.add(mesh)
-    return mesh
-  }
-  chairPart(new THREE.BoxGeometry(0.5, 0.08, 0.48), fabric, 0, 0.48, 0)
-  chairPart(new THREE.BoxGeometry(0.48, 0.62, 0.07), fabric, 0, 0.86, 0.24).rotation.x = -0.12
-  chairPart(new THREE.CylinderGeometry(0.025, 0.025, 0.4), metal, 0, 0.25, 0)
-  for (let leg = 0; leg < 5; leg++) {
-    const foot = chairPart(new THREE.BoxGeometry(0.03, 0.03, 0.3), metal, 0, 0.05, 0)
-    foot.rotation.y = (leg / 5) * Math.PI * 2
-    foot.translateZ(0.15)
-  }
-  group.add(chair)
-
-  // Bookshelf against the back wall, full of manuals.
-  const shelfX = -1.75
-  const shelfZ = ROOM.minZ + 0.2
-  box(0.95, 1.9, 0.36, wood, shelfX, 0.95, shelfZ).castShadow = false
-  const bookColors = ['#3a2a22', '#232a33', '#3b3524', '#2c2224', '#1f2b25', '#45423a']
-  // Fixed seed: the same shelf on every visit.
-  let seed = 7
-  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-  for (let level = 0; level < 4; level++) {
-    let x = shelfX - 0.42
-    while (x < shelfX + 0.38) {
-      const width = 0.03 + random() * 0.05
-      const height = 0.22 + random() * 0.14
-      const material = new THREE.MeshStandardMaterial({ color: bookColors[Math.floor(random() * bookColors.length)], roughness: 0.8 })
-      box(width, height, 0.26, material, x + width / 2, 0.12 + level * 0.45 + height / 2, shelfZ + 0.04)
-      x += width + 0.004
-    }
-  }
-
-  // Desk lamp on the left: a small warm pool on the desk, the only warm light in the room.
-  const shadeMaterial = new THREE.MeshStandardMaterial({ color: '#2d2a26', roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide })
-  box(0.16, 0.02, 0.16, metal, -0.72, 0.76, -0.2)
-  box(0.02, 0.45, 0.02, metal, -0.72, 0.98, -0.12).rotation.x = 0.35
-  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.14, 20, 1, true), shadeMaterial)
-  shade.position.set(-0.72, 1.2, 0.0)
-  shade.rotation.x = -0.6
-  group.add(shade)
-  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.025), new THREE.MeshBasicMaterial({ color: '#ffd9a0' }))
-  bulb.position.set(-0.72, 1.17, 0.03)
-  group.add(bulb)
-  const lamp = new THREE.SpotLight('#ffc98a', LAMP_POWER, 4, 0.9, 0.7, 1.6)
-  lamp.position.copy(bulb.position)
-  lamp.target.position.set(-0.45, 0.75, 0.4)
-  group.add(lamp, lamp.target)
-
-  // Desk clutter: paper, a mug, a floppy, boxes of parts. A second table on the right holds more machines.
-  const paper = new THREE.MeshStandardMaterial({ color: '#8c8778', roughness: 1 })
-  box(0.22, 0.03, 0.3, paper, 0.62, 0.765, 0.18).rotation.y = 0.25
-  box(0.2, 0.05, 0.28, paper, -0.45, 0.775, 0.3).rotation.y = -0.4
-  const cardboard = new THREE.MeshStandardMaterial({ color: '#4a3f30', roughness: 0.95 })
-  box(0.3, 0.2, 0.25, cardboard, -1.35, 0.1, 0.25)
-  box(0.25, 0.16, 0.22, cardboard, -1.3, 0.28, 0.22).rotation.y = 0.3
-  box(1.0, 0.06, 0.8, wood, 1.45, 0.72, -0.4)
-  for (const [x, z] of [[1.0, -0.75], [1.9, -0.75], [1.0, -0.05], [1.9, -0.05]] as const) box(0.05, 0.72, 0.05, metal, x, 0.36, z)
-  box(0.28, 0.08, 0.2, new THREE.MeshStandardMaterial({ color: '#b9b29d', roughness: 0.7 }), 1.75, 0.79, -0.15).rotation.y = -0.3
-  const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.1, 16), new THREE.MeshStandardMaterial({ color: '#5a2620', roughness: 0.6 }))
-  mug.position.set(0.72, 0.8, -0.2)
-  mug.castShadow = true
-  group.add(mug)
-
-  // Cables: from the machines down to a tangle on the floor, and one hanging from the ceiling.
-  const cableMaterial = new THREE.MeshStandardMaterial({ color: '#0c0c0c', roughness: 0.6 })
-  const cables: [number, number, number][][] = [
-    [[0.1, 0.85, -0.35], [0.3, 0.6, -0.6], [0.4, 0.04, -0.75], [1.4, 0.03, -0.82]],
-    [[1.3, 0.8, -0.6], [1.1, 0.3, -0.5], [0.7, 0.03, -0.3], [0.2, 0.03, -0.55], [-0.4, 0.03, -0.7]],
-    [[-0.6, 0.78, -0.4], [-0.7, 0.2, -0.6], [-0.2, 0.03, -0.3], [0.5, 0.03, -0.45], [0.9, 0.03, -0.2]],
-    [[1.1, ROOM.height, 0.4], [1.15, 1.9, 0.38], [1.05, 1.4, 0.5], [1.2, 1.1, 0.35]],
-  ]
-  for (const points of cables) {
-    const curve = new THREE.CatmullRomCurve3(points.map(([x, y, z]) => new THREE.Vector3(x, y, z)))
-    group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.012, 6), cableMaterial))
-  }
-
-  // Mattress on the floor in the front left, unmade.
-  const sheet = new THREE.MeshStandardMaterial({ color: '#7b8270', roughness: 1 })
-  box(1.4, 0.22, 2.0, new THREE.MeshStandardMaterial({ color: '#5d6356', roughness: 1 }), -1.55, 0.11, 2.9)
-  box(1.3, 0.08, 1.3, sheet, -1.5, 0.26, 3.2).rotation.set(0.04, 0.12, -0.03)
-  box(0.55, 0.12, 0.35, sheet, -1.8, 0.28, 2.15).rotation.y = 0.15
-  box(0.5, 0.12, 0.33, sheet, -1.25, 0.28, 2.1).rotation.y = -0.1
-
-  group.add(new THREE.AmbientLight('#2a3550', 0.18))
-  group.add(new THREE.HemisphereLight('#2a3a55', '#0a0806', 0.6))
-
-  // Dust drifting through the window light.
-  const DUST = 260
-  const dustPositions = new Float32Array(DUST * 3)
-  for (let index = 0; index < DUST; index++) {
-    dustPositions[index * 3] = -0.6 + random() * 3.6
-    dustPositions[index * 3 + 1] = 0.3 + random() * 2.2
-    dustPositions[index * 3 + 2] = -0.5 + random() * 2.6
-  }
-  const dustGeometry = new THREE.BufferGeometry()
-  dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3))
-  const dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ color: '#b9c7ff', size: 0.007, transparent: true, opacity: 0.55, depthWrite: false }))
-  group.add(dust)
-
-  // Terminal model: hide the backdrop and shadow planes that came with the file.
-  const [{ holder, model }, floppy, oldComputer, monitor] = await Promise.all([
-    loadModel(THREE, 'terminal.glb', 1.0, {
-      measure: 'height',
-      prepare: root => root.traverse((object) => {
-        if (object.name.startsWith('Plane')) object.visible = false
-      }),
-    }),
-    loadModel(THREE, 'floppy.glb', 0.09).catch(() => undefined),
-    loadModel(THREE, 'old_computer.glb', 0.5, { measure: 'height' }).catch(() => undefined),
-    loadModel(THREE, 'monitor.glb', 0.4, { measure: 'height' }).catch(() => undefined),
+  const [{ holder, model }, logoTexture] = await Promise.all([
+    loadModel(THREE, ROOM_FILE, 1),
+    createNeonLogoTexture(THREE).catch(() => undefined),
   ])
-  holder.position.y = 0.75
-  holder.traverse((object) => {
-    object.castShadow = object.receiveShadow = true
-  })
   group.add(holder)
-  for (const [extra, x, z, turn] of [[oldComputer, 1.25, -0.45, -0.3], [monitor, 1.75, -0.55, -0.6]] as const) {
-    if (!extra) continue
-    extra.holder.position.set(x, 0.75, z)
-    extra.holder.rotation.y = turn
-    // Switched-off machines: dim their bright plastic so the terminal stays the brightest thing in the room.
-    extra.holder.traverse((object) => {
-      object.castShadow = object.receiveShadow = true
-      for (const material of meshMaterials(object)) {
-        if ('color' in material && material.color instanceof THREE.Color) material.color.multiplyScalar(0.45)
-        if (material instanceof THREE.MeshStandardMaterial) material.emissive.set('#000000')
-      }
-    })
-    group.add(extra.holder)
-  }
-  if (floppy) {
-    floppy.holder.position.set(0.55, 0.785, 0.32)
-    floppy.holder.rotation.y = 0.6
-    group.add(floppy.holder)
-  }
 
-  // Paint our text into the screen area of the terminal's own texture, so it sits exactly on the glass.
-  let bodyMaterial: Three.MeshStandardMaterial | undefined
+  const screens: Three.Mesh[] = []
+  const lightSpots: Three.Mesh[] = []
+  const neonParts: Three.Mesh[] = []
+  let signCenter: Three.Vector3 | undefined
   model.traverse((object) => {
-    for (const material of meshMaterials(object)) {
-      if (material instanceof THREE.MeshStandardMaterial && material.name === 'TerminalMaterial') bodyMaterial = material
+    const mesh = object as Three.Mesh
+    if (!mesh.isMesh) return
+    for (const material of meshMaterials(mesh)) {
+      // The specular-glossiness conversion leaves an index of refraction of 1000: every surface turns into a mirror.
+      if (material instanceof THREE.MeshPhysicalMaterial && material.ior > 3) material.ior = 1.5
+      if (PLAIN_POSTERS.includes(material.name) && material instanceof THREE.MeshStandardMaterial) {
+        material.map = null
+        material.color.set('#2a2d33')
+        material.needsUpdate = true
+      }
+      if (material.name === NEON_MATERIAL) neonParts.push(mesh)
+      if (SCREEN_MATERIALS.includes(material.name)) screens.push(mesh)
+      if (LIGHT_MATERIALS.includes(material.name)) lightSpots.push(mesh)
     }
   })
-  const baseImage = bodyMaterial?.map?.image as CanvasImageSource & { width: number, height: number } | undefined
-  const size = baseImage?.width ?? 1024
-  const scale = size / 1024
-  const colorCanvas = document.createElement('canvas')
-  const glowCanvas = document.createElement('canvas')
-  colorCanvas.width = colorCanvas.height = glowCanvas.width = glowCanvas.height = size
-  const colorContext = colorCanvas.getContext('2d')!
-  const glowContext = glowCanvas.getContext('2d')!
-  const colorTexture = new THREE.CanvasTexture(colorCanvas)
-  const glowTexture = new THREE.CanvasTexture(glowCanvas)
-  for (const texture of [colorTexture, glowTexture]) {
-    texture.flipY = false
-    texture.colorSpace = THREE.SRGBColorSpace
+
+  // Main monitor: the biggest screen. Turn the room so it faces +z, then scale the room to real size.
+  const area = (mesh: Three.Mesh) => new THREE.Box3().setFromObject(mesh).getSize(new THREE.Vector3()).lengthSq()
+  screens.sort((a, b) => area(b) - area(a))
+  const [mainScreen, sideScreen] = screens
+  if (!mainScreen) throw new Error('Room model has no screen')
+  holder.updateMatrixWorld(true)
+  const facing = screenNormal(THREE, mainScreen)
+  // Screen normals can point out of the back: the monitor faces the middle of the room.
+  const towardRoom = new THREE.Box3().setFromObject(holder).getCenter(new THREE.Vector3()).sub(new THREE.Box3().setFromObject(mainScreen).getCenter(new THREE.Vector3()))
+  const isBackwards = towardRoom.setY(0).dot(facing) < 0
+  if (isBackwards) facing.negate()
+  holder.rotation.y = Math.atan2(-facing.x, facing.z) + holder.rotation.y
+  holder.updateMatrixWorld(true)
+  const floor = new THREE.Box3().setFromObject(holder).min.y
+  const screenBounds = new THREE.Box3().setFromObject(mainScreen)
+  holder.scale.multiplyScalar(SCREEN_HEIGHT / (screenBounds.getCenter(new THREE.Vector3()).y - floor))
+  holder.updateMatrixWorld(true)
+  // Floor at y = 0, main screen at x = 0.
+  const scaledFloor = new THREE.Box3().setFromObject(holder).min.y
+  const screenCenter = new THREE.Box3().setFromObject(mainScreen).getCenter(new THREE.Vector3())
+  holder.position.set(-screenCenter.x, -scaledFloor, -screenCenter.z)
+  holder.updateMatrixWorld(true)
+  screenCenter.set(0, screenCenter.y - scaledFloor, new THREE.Box3().setFromObject(mainScreen).max.z)
+
+  // Our text on the main monitor, a film reference on the other one (their own wallpapers show third-party app icons).
+  const terminal = createTerminalTexture(THREE)
+  const rabbitScreen = createRabbitScreen(THREE, onEggStart)
+  // The screens' normals point out of the back and their axes are turned: draw both sides, then fix the UVs by eye
+  // (measured in the browser) so text reads upright from the front. Matte, so the screen light leaves no hotspot.
+  const screenMaterial = new THREE.MeshStandardMaterial({ color: '#000000', emissive: '#ffffff', emissiveMap: terminal.texture, emissiveIntensity: 1.2, roughness: 1, side: THREE.DoubleSide })
+  const setScreenUvs = (geometry: Three.BufferGeometry, mirror = false) => {
+    setFlatUvs(THREE, geometry, !isBackwards !== mirror)
+    const uvs = geometry.getAttribute('uv')
+    for (let index = 0; index < uvs.count; index++) uvs.setY(index, 1 - uvs.getY(index))
   }
-  if (bodyMaterial) {
-    bodyMaterial.map = colorTexture
-    bodyMaterial.emissiveMap = glowTexture
-    bodyMaterial.emissive.set('#ffffff')
-    bodyMaterial.emissiveIntensity = 1.4
-    bodyMaterial.needsUpdate = true
+  setScreenUvs(mainScreen.geometry)
+  mainScreen.material = screenMaterial
+  if (sideScreen) {
+    setScreenUvs(sideScreen.geometry, true)
+    sideScreen.material = new THREE.MeshBasicMaterial({ map: rabbitScreen.texture, side: THREE.DoubleSide })
   }
 
-  const rect = { x: SCREEN_RECT.x * scale, y: SCREEN_RECT.y * scale, width: SCREEN_RECT.width * scale, height: SCREEN_RECT.height * scale }
-  function drawScreen(context: CanvasRenderingContext2D, lines: string[], cursorOn: boolean) {
-    context.save()
-    // The screen is stored upside down in the atlas: flip our drawing inside that rectangle.
-    context.translate(0, rect.y * 2 + rect.height)
-    context.scale(1, -1)
-    context.fillStyle = '#041006'
-    context.fillRect(rect.x, rect.y, rect.width, rect.height)
-    const fontSize = rect.height / 6.5
-    context.font = `${fontSize}px VT323, ui-monospace, monospace`
-    context.fillStyle = PHOSPHOR
-    context.shadowColor = PHOSPHOR
-    context.shadowBlur = fontSize / 3
-    lines.forEach((line, index) => {
-      const text = index === lines.length - 1 && cursorOn ? `${line}_` : line
-      context.fillText(text, rect.x + rect.width * 0.06, rect.y + fontSize * 1.3 + index * fontSize * 1.2, rect.width * 0.9)
-    })
-    context.restore()
+  // The neon sign: the official logo on a plane where the old sign hung, lit from within.
+  if (neonParts.length) {
+    // The sign is several tube meshes (one per word). Measure them in the model's own axes, where the sign hangs
+    // square to the wall: its thinnest side is its facing. (The tubes' averaged normals tilt it into the wall.)
+    holder.updateMatrixWorld(true)
+    const toModel = model.matrixWorld.clone().invert()
+    const local = new THREE.Box3()
+    for (const part of neonParts) {
+      part.geometry.computeBoundingBox()
+      local.union(part.geometry.boundingBox!.clone().applyMatrix4(toModel.clone().multiply(part.matrixWorld)))
+    }
+    const size = local.getSize(new THREE.Vector3())
+    const facesX = size.x < size.z
+    const center = local.getCenter(new THREE.Vector3()).applyMatrix4(model.matrixWorld)
+    const normal = new THREE.Vector3(facesX ? 1 : 0, 0, facesX ? 0 : 1).transformDirection(model.matrixWorld)
+    for (const part of neonParts) part.visible = false
+    // Signs face into the room, and stand a little off the wall so nothing of the logo sinks into it.
+    if (normal.dot(new THREE.Vector3().subVectors(screenCenter, center).setY(0)) < 0) normal.negate()
+    center.addScaledVector(normal, 0.02)
+    signCenter = center.clone()
+    const width = (facesX ? size.z : size.x) * holder.scale.x * 1.05
+    if (logoTexture) {
+      const sign = new THREE.Mesh(
+        new THREE.PlaneGeometry(width, width * logoTexture.image.height / logoTexture.image.width),
+        new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true, toneMapped: false, side: THREE.DoubleSide }),
+      )
+      sign.position.copy(center)
+      sign.lookAt(center.clone().add(normal))
+      group.add(sign)
+    }
+    const glow = new THREE.PointLight('#e8eeff', NEON_POWER, 3, 1.5)
+    glow.position.copy(center).addScaledVector(normal, 0.3)
+    group.add(glow)
   }
 
-  function setLines(lines: string[], cursorOn: boolean) {
-    if (baseImage) colorContext.drawImage(baseImage, 0, 0, size, size)
-    drawScreen(colorContext, lines, cursorOn)
-    glowContext.fillStyle = '#000000'
-    glowContext.fillRect(0, 0, size, size)
-    drawScreen(glowContext, lines, cursorOn)
-    colorTexture.needsUpdate = true
-    glowTexture.needsUpdate = true
-  }
-  setLines([''], true)
+  // Lamps in the file are only glowing meshes: give each a real warm light.
+  const lamps = lightSpots.map((spot) => {
+    const lamp = new THREE.PointLight('#ffd2a0', LAMP_POWER, 4, 1.6)
+    lamp.position.copy(group.worldToLocal(new THREE.Box3().setFromObject(spot).getCenter(new THREE.Vector3())))
+    group.add(lamp)
+    return lamp
+  })
+  group.add(new THREE.HemisphereLight('#3a4660', '#0c0a08', FILL_LIGHT))
 
-  // The CRT sits high and left of centre on the front (the right holds the drive bay); measured in the browser, relative to the terminal bounds.
-  const terminalBounds = new THREE.Box3().setFromObject(holder)
-  const screenCenter = new THREE.Vector3(
-    // 0.17 units left: the model is scaled to 1 unit wide, so this is 17% of the terminal.
-    (terminalBounds.min.x + terminalBounds.max.x) / 2 - 0.17,
-    terminalBounds.min.y + (terminalBounds.max.y - terminalBounds.min.y) * 0.72,
-    terminalBounds.max.z,
+  // The monitor lights the desk and your face green.
+  const screenLight = new THREE.PointLight('#a8e6b8', SCREEN_GLOW, 2.5, 1.8)
+  screenLight.position.copy(screenCenter).add(new THREE.Vector3(0, 0, 0.35))
+  group.add(screenLight)
+
+  // The model is a diorama with open sides: close it in with a dark box, so turning around shows only the room.
+  const room = new THREE.Box3().setFromObject(holder)
+  const roomSize = room.getSize(new THREE.Vector3())
+  const shell = new THREE.Mesh(
+    new THREE.BoxGeometry(roomSize.x + 0.1, roomSize.y + 0.1, roomSize.z + 0.1),
+    new THREE.MeshStandardMaterial({ color: '#0a0c0a', roughness: 1, side: THREE.BackSide }),
   )
+  room.getCenter(shell.position)
+  group.add(shell)
 
-  // The screen lights the room green: the strongest light in here.
-  const crtLight = new THREE.PointLight(PHOSPHOR, CRT_GLOW, 4, 1.6)
-  crtLight.position.copy(screenCenter).add(new THREE.Vector3(0, 0, 0.35))
-  group.add(crtLight)
+  // Entrance: back from the desk, as far as the room allows, a little to the side.
+  const entrance = new THREE.Vector3(
+    Math.max(room.min.x + 0.5, Math.min(room.max.x - 0.5, screenCenter.x - 0.8)),
+    1.6,
+    Math.min(room.max.z - 0.4, screenCenter.z + 3),
+  )
 
   let surge = 0
   return {
     group,
     screenCenter,
-    setLines,
+    entrance,
+    signCenter,
+    setLines: (lines, cursorOn) => terminal.draw(lines, cursorOn),
     setSurge: (amount) => {
       surge = Math.max(0, Math.min(1, amount))
-      if (bodyMaterial) bodyMaterial.emissiveIntensity = 1.4 + surge * 6
-      lamp.intensity = LAMP_POWER * (1 - surge * 0.9)
-      moon.intensity = WINDOW_POWER * (1 - surge * 0.7)
+      screenMaterial.emissiveIntensity = 1.2 + surge * 5
+      for (const lamp of lamps) lamp.intensity = LAMP_POWER * (1 - surge * 0.9)
     },
     update: (seconds) => {
-      // A CRT hums: a tiny uneven flicker, stronger while it pulls you in.
-      const flicker = 1 + Math.sin(seconds * 37) * Math.sin(seconds * 11.3) * (0.06 + surge * 0.4)
-      crtLight.intensity = CRT_GLOW * (1 + surge * 8) * flicker
-      dust.rotation.y = Math.sin(seconds * 0.05) * 0.05
-      dust.position.y = Math.sin(seconds * 0.2) * 0.03
+      rabbitScreen.update(seconds)
+      // A screen hums: a tiny uneven flicker, stronger while it pulls you in.
+      const flicker = 1 + Math.sin(seconds * 37) * Math.sin(seconds * 11.3) * (0.05 + surge * 0.4)
+      screenLight.intensity = SCREEN_GLOW * (1 + surge * 8) * flicker
+    },
+  }
+}
+
+// Average normal of a flat mesh, flattened to the floor plane, in world space.
+function screenNormal(THREE: ThreeModule, mesh: Three.Mesh) {
+  const normals = mesh.geometry.getAttribute('normal')
+  const normal = new THREE.Vector3()
+  const vector = new THREE.Vector3()
+  for (let index = 0; index < normals.count; index++) normal.add(vector.fromBufferAttribute(normals, index))
+  normal.transformDirection(mesh.matrixWorld)
+  normal.y = 0
+  return normal.lengthSq() > 0 ? normal.normalize() : new THREE.Vector3(0, 0, 1)
+}
+
+// The official white outline logo, unchanged, on a transparent canvas.
+async function createNeonLogoTexture(THREE: ThreeModule) {
+  const image = new Image()
+  image.src = encodeURI(LOGO_FILE)
+  await image.decode()
+  const canvas = document.createElement('canvas')
+  canvas.width = 2304
+  canvas.height = 512
+  canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.anisotropy = 4
+  return texture
+}
+
+// A dark screen where the rain and the rabbit show up: first after a while, then at random.
+function createRabbitScreen(THREE: ThreeModule, onStart?: () => void) {
+  const width = 320
+  const height = 180
+  const pixel = 3
+  const glyphSize = 12
+  const rabbitWidth = RABBIT_SITTING[0]!.length * pixel
+  const rabbitHeight = RABBIT_SITTING.length * pixel
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')!
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.magFilter = THREE.NearestFilter
+
+  const columns = Math.ceil(width / glyphSize)
+  const drops = Array.from({ length: columns }, () => Math.random() * height)
+  const speeds = Array.from({ length: columns }, () => 40 + Math.random() * 80)
+  let start: number | undefined
+  let ground = 0
+  let lastDraw = 0
+  let isBlank = false
+
+  function draw(opacity: number, time: number) {
+    context.globalAlpha = 1
+    context.fillStyle = '#020403'
+    context.fillRect(0, 0, width, height)
+    if (opacity <= 0) return
+    context.globalAlpha = opacity
+    // Rain: a bright head glyph with a fading trail per column.
+    context.font = `${glyphSize}px monospace`
+    drops.forEach((head, column) => {
+      const y = (head + time * speeds[column]!) % (height + 60)
+      for (let trail = 0; trail < 6; trail++) {
+        context.fillStyle = trail === 0 ? '#c8ffd6' : `rgb(51 255 102 / ${0.7 - trail * 0.11})`
+        context.fillText(RAIN_GLYPHS[Math.floor(Math.random() * RAIN_GLYPHS.length)]!, column * glyphSize, y - trail * glyphSize)
+      }
+    })
+    // Rabbit: hops from the left edge to the right edge, one arc per hop.
+    const hopTime = time - RABBIT_FADE_SECONDS
+    if (hopTime < 0 || hopTime > RABBIT_HOP_SECONDS) return
+    const x = -rabbitWidth + (width + rabbitWidth) * (hopTime / RABBIT_HOP_SECONDS)
+    const phase = (hopTime % RABBIT_HOP_LENGTH_SECONDS) / RABBIT_HOP_LENGTH_SECONDS
+    const lift = Math.sin(phase * Math.PI) * 14
+    const shape = lift > 3 ? RABBIT_JUMPING : RABBIT_SITTING
+    const top = Math.round(ground - rabbitHeight - lift)
+    context.fillStyle = '#f0f4f0'
+    shape.forEach((row, rowIndex) => [...row].forEach((cell, column) => {
+      if (cell === '#') context.fillRect(Math.round(x) + column * pixel, top + rowIndex * pixel, pixel, pixel)
+    }))
+  }
+  function schedule(from: number, gap: number) {
+    start = from + gap
+    ground = Math.round(height * (0.55 + Math.random() * 0.35))
+  }
+  draw(0, 0)
+
+  return {
+    texture,
+    update: (seconds: number) => {
+      if (start === undefined) schedule(seconds, RABBIT_FIRST_SECONDS)
+      const time = seconds - start!
+      const shown = RABBIT_FADE_SECONDS * 2 + RABBIT_HOP_SECONDS
+      if (time > shown) {
+        const [shortest, longest] = RABBIT_GAP_SECONDS
+        schedule(seconds, shortest + Math.random() * (longest - shortest))
+      }
+      if (time < 0 || time > shown) {
+        // Off: one blank frame, then nothing to upload.
+        if (!isBlank) {
+          draw(0, 0)
+          texture.needsUpdate = true
+          isBlank = true
+        }
+        return
+      }
+      // Animated: about 15 frames a second is plenty on a side screen.
+      if (seconds - lastDraw < 0.066) return
+      lastDraw = seconds
+      if (isBlank) onStart?.()
+      isBlank = false
+      draw(Math.min(1, time / RABBIT_FADE_SECONDS, (shown - time) / RABBIT_FADE_SECONDS), time)
+      texture.needsUpdate = true
     },
   }
 }

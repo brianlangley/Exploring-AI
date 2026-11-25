@@ -173,6 +173,8 @@ export const nl: Messages = {
     next: 'Volgende stap',
     stepOf: (current: number, total: number) => `Stap ${String(current).padStart(2, '0')} / ${total}`,
     stepsLabel: 'Stappen',
+    sound: 'Geluid',
+    music: 'Muziek',
     goToStep: (name: string) => `Ga naar: ${name}`,
     introHint: 'Druk op Enter, → of klik om te beginnen',
     loading: 'De 3D-scène wordt geladen...',

@@ -11,8 +11,10 @@ const FADE_SECONDS = 0.35
 const DIVE_SECONDS = 1.5
 const SCAN_SECONDS = 0.9
 const ARRIVAL_SECONDS = 1.8
-// On load you stand in the doorway and walk up to the terminal; it starts typing once you are close.
-const LOAD_WALK_SECONDS = 6
+// On load you look at the sign, turn around and walk up to the monitor; it starts typing once you are close.
+const LOAD_SIGN_HOLD_SECONDS = 1.8
+const LOAD_TURN_SECONDS = 1.8
+const LOAD_WALK_SECONDS = 3.2
 const LOAD_TYPE_DELAY_SECONDS = 3.5
 // Leaving the machine: yanked backwards out of the 3D world, then the room pulls away from the glass.
 const EXIT_PULL_SECONDS = 0.9
@@ -37,10 +39,11 @@ function ease(progress: number) {
 
 // One 3D scene for the whole route: dark room, history road, 2026 desk. The step decides where the camera goes.
 export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
-  const { steps, stepIndex, step, transition, isStageUnavailable } = usePresentation()
+  const { steps, stepIndex, step, transition, isStageUnavailable, isStageMoving } = usePresentation()
   const { specs } = useDevice()
   const { localModels } = useModels()
   const { messages } = useLocale()
+  const sound = useStageSound()
   const isReady = ref(false)
   // Where the 3D monitor is on the page (CSS pixels), once the camera has arrived. Null while moving or off screen.
   const screenRect = useState<{ left: number, top: number, width: number, height: number } | null>('mock-screen-rect', () => null)
@@ -51,6 +54,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     const canvas = canvasRef.value
     if (!canvas) return
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const removeSound = sound.install()
     // A remount (hot reload) mid-transition must not leave the overlay up.
     transition.value = 'none'
 
@@ -67,15 +71,15 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setClearColor('#030405')
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    // Only the room's window light casts shadows (the stripes of the blinds).
-    renderer.shadowMap.enabled = true
 
     const scene = new THREE.Scene()
     scene.fog = new THREE.Fog('#030405', 12, 45)
     const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 200)
 
     // The room comes first (it is on screen at once); the other worlds load in the background.
-    const room = await buildTerminalRoom(THREE).catch(() => undefined)
+    const room = await buildTerminalRoom(THREE, () => {
+      if (room?.group.visible) sound.crackle()
+    }).catch(() => undefined)
     if (isUnmounted) return
     if (room) {
       room.group.position.fromArray(WORLD_ORIGINS.room)
@@ -119,8 +123,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     function poseFor(target: typeof steps[number]): CameraPose {
       if (target.world !== 'room' || !room) return target.camera
       const screen = screenWorld()
-      if (target.id === 'end') return { position: [screen.x + 0.3, screen.y + 0.2, screen.z + 1.5], target: [screen.x + 0.05, screen.y - 0.08, screen.z] }
-      return { position: [screen.x, screen.y + 0.04, screen.z + 0.95], target: [screen.x, screen.y - 0.1, screen.z] }
+      if (target.id === 'end') return { position: [screen.x + 0.35, screen.y + 0.25, screen.z + 1.9], target: [screen.x + 0.1, screen.y - 0.08, screen.z] }
+      return { position: [screen.x, screen.y + 0.15, screen.z + 1.4], target: [screen.x, screen.y - 0.08, screen.z] }
     }
     function snapTo(pose: CameraPose) {
       const { position, target } = poseVectors(pose)
@@ -201,6 +205,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     function onPointerMove(event: PointerEvent) {
       if (!drag) return
       orbit.wantedYaw = drag.yaw - (event.clientX - drag.x) * 0.006
+      // In the room the camera turns around the monitor: a small turn only, or it swings out through the walls.
+      if (step.value.world === 'room') orbit.wantedYaw = Math.max(-0.6, Math.min(0.6, orbit.wantedYaw))
       orbit.wantedPitch = Math.max(-0.5, Math.min(0.6, drag.pitch + (event.clientY - drag.y) * 0.004))
     }
     function onPointerUp() {
@@ -265,7 +271,9 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       desk?.setDevicesVisible(newStep.id === 'further')
       revealAllStationsUpTo()
 
+      sound.tick()
       if (newStep.world === oldStep.world) {
+        sound.swish()
         moveTo(poseFor(newStep), MOVE_SECONDS, () => revealStation())
         revealStation()
         return
@@ -279,6 +287,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
         return
       }
       transition.value = 'fade'
+      sound.swish()
       play(FADE_SECONDS, () => {}, () => {
         snapTo(poseFor(newStep))
         revealStation(true)
@@ -296,6 +305,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     function diveIntoScreen(newStep: typeof steps[number]) {
       const screen = screenWorld()
       isDiving = true
+      sound.whoosh('in', DIVE_SECONDS + SCAN_SECONDS / 2)
       play(DIVE_SECONDS, (progress) => {
         setFov(BASE_FOV + 45 * accelerate(progress))
         room!.setSurge(progress ** 2)
@@ -329,6 +339,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     // in the room again, and the room pulls away until you sit back, looking at the screen.
     function pullOutOfScreen(newStep: typeof steps[number]) {
       const away = basePosition.clone().sub(cameraTarget).setLength(14).add(basePosition)
+      sound.whoosh('out', EXIT_PULL_SECONDS + SCAN_SECONDS * 0.6)
       play(EXIT_PULL_SECONDS, (progress) => {
         setFov(BASE_FOV + 60 * accelerate(progress))
         shake = 0.05 * accelerate(progress)
@@ -365,12 +376,17 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       const copy = messages.value.route.terminal
       return step.value.id === 'end' ? copy.end : copy.intro
     }
+    let lastTyped = 0
     function updateTerminal(now: number) {
       if (!room || step.value.world !== 'room') return
       const lines = terminalLines()
       const total = lines.join('').length
       const typed = prefersReducedMotion ? total : Math.max(0, Math.floor((now - stepStart) / 1000 / TYPE_SECONDS_PER_CHARACTER))
       let left = Math.min(typed, total)
+      // A key click for every new letter (spaces and line breaks are silent).
+      const typedText = lines.join('').slice(0, left)
+      if (left > lastTyped && typedText.at(-1)?.trim()) sound.keyClick()
+      lastTyped = left
       const visible = lines.map((line) => {
         const part = line.slice(0, left)
         left = Math.max(0, left - line.length)
@@ -429,12 +445,40 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       if (!current || current.left !== rect.left || current.top !== rect.top || current.width !== rect.width || current.height !== rect.height) screenRect.value = rect
     }
 
-    // On load you stand in the doorway of the dark room and walk up to the terminal, as if you pull up a chair.
-    snapTo(step.value.camera)
-    if (step.value.world === 'room') {
+    // On load: look at the room's sign, then turn and sit down at the monitor (or walk straight up to it).
+    const sign = room?.signCenter?.clone().add(room.group.position)
+    if (step.value.world === 'room' && room && sign && !prefersReducedMotion) {
+      // First the glowing LM Studio sign on the back wall, then turn around and sit down at the monitor.
+      const screen = screenWorld()
+      snapTo({ position: [sign.x + 0.3, 1.55, sign.z - 2], target: sign.toArray() })
+      play(LOAD_SIGN_HOLD_SECONDS, () => {}, () => {
+        moveTo({ position: [screen.x - 0.4, 1.5, screen.z + 1.9], target: [screen.x - 2, 1.3, screen.z + 1.6] }, LOAD_TURN_SECONDS, () => {
+          moveTo(poseFor(step.value), LOAD_WALK_SECONDS)
+        })
+      })
+      stepStart = performance.now() + (LOAD_SIGN_HOLD_SECONDS + LOAD_TURN_SECONDS + LOAD_WALK_SECONDS * 0.6) * 1000
+    }
+    else if (step.value.world === 'room' && room) {
+      const entrance = room.entrance.clone().add(room.group.position)
+      const screen = screenWorld()
+      snapTo({ position: entrance.toArray(), target: [screen.x, screen.y - 0.2, screen.z] })
       moveTo(poseFor(step.value), LOAD_WALK_SECONDS)
       if (!prefersReducedMotion) stepStart = performance.now() + LOAD_TYPE_DELAY_SECONDS * 1000
     }
+    else {
+      snapTo(step.value.camera)
+    }
+    // Only the world the camera is in is drawn: no other world through the room's open sides,
+    // and no other world's sun or fill light leaking in (lights reach the whole scene).
+    const worldBorders = [(WORLD_ORIGINS.room[0] + WORLD_ORIGINS.road[0]) / 2, (WORLD_ORIGINS.road[0] + WORLD_ORIGINS.desk[0]) / 2]
+    function showOnlyCameraWorld() {
+      const x = camera.position.x
+      if (room) room.group.visible = x < worldBorders[0]!
+      if (road) road.group.visible = x >= worldBorders[0]! && x < worldBorders[1]!
+      if (desk) desk.group.visible = x >= worldBorders[1]!
+    }
+
+    let wasInRoom = false
     let frame = 0
     let lastTerminalDraw = 0
     function render(now: number) {
@@ -450,6 +494,14 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
         }
       }
       applyView(now / 1000)
+      showOnlyCameraWorld()
+      const isInRoom = Boolean(room?.group.visible)
+      if (isInRoom !== wasInRoom) {
+        sound.setHum(isInRoom)
+        wasInRoom = isInRoom
+      }
+      const isMoving = moves.length > 0 || transition.value !== 'none'
+      if (isStageMoving.value !== isMoving) isStageMoving.value = isMoving
       updateSpotlight()
       road?.update(now / 1000)
       room?.update(now / 1000)
@@ -472,6 +524,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointercancel', onPointerUp)
+      removeSound()
       stopWatchingSpecs()
       stopWatchingStep()
       renderer.dispose()

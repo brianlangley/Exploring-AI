@@ -10,6 +10,8 @@ export function usePresentation() {
   const transition = useState<StageTransition>('presentation-transition', () => 'none')
   // No WebGL or loading failed: the panels still carry the content.
   const isStageUnavailable = useState('presentation-stage-unavailable', () => false)
+  // True while the camera flies or a transition plays: captions wait until the view has arrived.
+  const isStageMoving = useState('presentation-stage-moving', () => false)
 
   const step = computed(() => steps[stepIndex.value]!)
   const isFirst = computed(() => stepIndex.value === 0)
@@ -40,7 +42,7 @@ export function usePresentation() {
     if (index >= 0) stepIndex.value = index
   }
 
-  return { steps, stepIndex, step, isFirst, isLast, transition, isStageUnavailable, goTo, next, previous, readHash }
+  return { steps, stepIndex, step, isFirst, isLast, transition, isStageUnavailable, isStageMoving, goTo, next, previous, readHash }
 }
 
 // Keyboard and presentation clickers (they send PageDown/PageUp or arrows). Not while typing or using a slider.

@@ -173,6 +173,8 @@ export const en = {
     next: 'Next step',
     stepOf: (current: number, total: number) => `Step ${String(current).padStart(2, '0')} / ${total}`,
     stepsLabel: 'Steps',
+    sound: 'Sound',
+    music: 'Music',
     goToStep: (name: string) => `Go to: ${name}`,
     introHint: 'Press Enter, → or click to start',
     loading: 'Loading the 3D scene...',
