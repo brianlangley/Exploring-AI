@@ -265,6 +265,6 @@ Light
 History road (`app/utils/historyRoad.ts`)
 - 1950: the dark box plinth under the plugboard is gone; the board is tilted up and its lowest point sits on the floor (measured with `Box3` after rotating).
 
-Checked in the browser: theme colours, seated intro, full dive sequence, plugboard lit, drag orbit, spotlight on 2012 and the desk. `npm run lint` clean. Not checked: touch devices (canvas has `touch-none`, pointer events should cover it), `npm run build` after this pass, typecheck (needs `vue-tsc`, not installed).
+Checked in the browser: theme colours, seated intro, full dive sequence, plugboard lit, drag orbit, spotlight on 2012 and the desk. `npm run lint` clean. `npm run build` passes. Not checked: touch devices (canvas has `touch-none`, pointer events should cover it), typecheck (needs `vue-tsc`, not installed).
 
 Still open: everything in section 10 "Still open".
