@@ -93,7 +93,8 @@ export async function buildDeskWorld(THREE: ThreeModule): Promise<DeskWorld> {
   smartHome.holder.rotation.y = 0.9
 
   rack.holder.position.set(4.6, 0, -2.4)
-  rack.holder.rotation.y = -Math.PI / 2
+  // Front of the file is +Z. Point it at the verder camera (11, 4.4, 7.5) so the face is toward the viewer.
+  rack.holder.rotation.y = Math.atan2(11 - 4.6, 7.5 + 2.4)
   devices.add(phone.holder, raspberryPi.holder, smartHome.holder, rack.holder)
 
   // Light cables from the PC tower (its top, measured on the model) to each device.
