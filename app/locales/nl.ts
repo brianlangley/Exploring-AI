@@ -6,7 +6,7 @@ export const nl: Messages = {
   switchTo: 'English',
   switchLabel: 'View this site in English',
 
-  header: { title: 'LM Studio, uitgelegd', navLabel: 'Onderdelen' },
+  header: { title: 'Exploring LM', navLabel: 'Onderdelen' },
   nav: {
     intro: 'Intro',
     what: 'Wat is het',
@@ -205,6 +205,20 @@ export const nl: Messages = {
     close: 'Sluit de tip',
     hide: 'Verberg Floppy',
     next: 'Verder',
+    quips: {
+      poke: [
+        'Hé! Vintage hardware. Voorzichtig.',
+        'Nog één keer porren en ik formatteer mezelf.',
+        'Ik heb 1,44 MB geduld. Dat raakt op.',
+        'Au. Let op mijn schrijfbeveiliging!',
+      ],
+      bored: [
+        'Nog daar? Ik kan wel even defragmenteren.',
+        'Leuk weetje: ik was ooit de nieuwste techniek. Nu ben ik het opslaan-icoon.',
+        'Neem je tijd. Ik wacht al sinds 1987.',
+      ],
+      wake: 'Hè? Ik sliep niet. Ik was even... aan het afkoelen.',
+    },
     tips: {
       intro: 'Hoi, ik ben Floppy. Ik pas 1,44 MB. Druk op Enter, dan gaan we de computer in.',
       y1950: 'Geen scherm, geen toetsenbord: programmeren was kabels steken.',

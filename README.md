@@ -1,4 +1,4 @@
-# LM Studio, Explained
+# Exploring LM
 
 Interactive, shareable explainer of LM Studio for the Inholland Exploring AI Tool Market (Bewijsstuk 3).
 

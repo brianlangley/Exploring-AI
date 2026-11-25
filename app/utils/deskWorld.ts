@@ -85,7 +85,8 @@ export async function buildDeskWorld(THREE: ThreeModule): Promise<DeskWorld> {
 
   const phoneSpot = pedestal(4.6, 3.2)
   phone.holder.position.copy(phoneSpot)
-  phone.holder.rotation.y = -0.8
+  // Screen side of the file is +Z: point it at the verder camera (11, 4.4, 7.5).
+  phone.holder.rotation.y = Math.atan2(11 - 4.6, 7.5 - 3.2)
 
   const hubSpot = pedestal(5.0, 0.6, 1.3)
   raspberryPi.holder.position.copy(hubSpot).add(new THREE.Vector3(0.3, 0, 0.35))

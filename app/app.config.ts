@@ -8,8 +8,9 @@ export default defineAppConfig({
     },
     // Calmer surfaces (PLAN-v3 section 11): soft filled cards instead of outlined boxes, pill buttons.
     card: {
-      slots: { root: 'rounded-2xl' },
-      variants: { variant: { outline: { root: 'bg-white/[0.025] ring-0 divide-y divide-default' } } },
+      // Bento tiles: big radius, faint fill, 1 px inner top highlight instead of a border.
+      slots: { root: 'rounded-3xl', header: 'sm:px-7 sm:pt-7', body: 'sm:p-7' },
+      variants: { variant: { outline: { root: 'bg-white/[0.035] ring-1 ring-white/[0.06] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] divide-y divide-white/[0.06]' } } },
     },
     button: {
       slots: { base: 'rounded-full' },

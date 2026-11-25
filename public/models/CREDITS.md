@@ -11,9 +11,10 @@ All files here are shrunk copies of the Sketchfab downloads: textures resized to
 | `gpu.glb` | GeForce RTX 3080 Graphics Card | _surovic_ | https://sketchfab.com/3d-models/geforce-rtx-3080-graphics-card-8b947ee1bf7a4e3d8ffa1c24893ac160 | CC BY 4.0 | Textures shrunk, Meshopt compression; in code the "RTX 3080" and "GEFORCE RTX" lettering is painted out and the glow layer switched off |
 | `gaming-pc.glb` | Gaming Desktop PC | Yolala1232 | https://sketchfab.com/3d-models/gaming-desktop-pc-d1d8282c9916438091f11aeb28787b66 | CC BY 4.0 | Textures shrunk, Meshopt compression; in code all brand logos hidden or replaced with plain materials, the screen shows the LM Studio logo |
 | `floppy.glb` | Floppy Disk | Nyangire | https://sketchfab.com/3d-models/floppy-disk-42e1e3a4e80443b8ac72fd55d988153e | CC BY 4.0 | Textures shrunk; in code it gets eyes and becomes the helper "Floppy" |
-| `phone.glb` | Phone | schmoldt.art | https://sketchfab.com/3d-models/phone-eaa0a0cbce964b2099b955f5ea241eee | CC BY 4.0 | Textures shrunk |
+| `phone.glb` | Mobile phone | Alain Sorazu | https://sketchfab.com/3d-models/mobile-phone-4a97a633ad584ba19110e1730f7744c1 | **CC BY-SA 4.0** (https://creativecommons.org/licenses/by-sa/4.0/). This compressed copy is also CC BY-SA 4.0 | Mesh simplified (55k faces down), materials merged, Meshopt compression |
 | `smart-home.glb` | Smart Home | greekisback | https://sketchfab.com/3d-models/smart-home-64dc5db388794716ad6d97c97697d2e7 | CC BY 4.0 | Textures shrunk |
 | `raspberry-pi.glb` | Raspberry Pi 3 | JoSaCo | https://sketchfab.com/3d-models/raspberry-pi-3-2d308283fc0f4d27b81f17a2793c5c4d | CC BY 4.0 | Textures shrunk |
-| `monitor.glb` | Computer Monitor Lowpoly Model | Marco Zakaria | https://sketchfab.com/3d-models/computer-monitor-lowpoly-model-1d4ee42eda804b02b05b63721921c1d7 | CC BY 4.0 | Backup screen, not used yet |
+| `monitor.glb` | Computer Monitor Lowpoly Model | Marco Zakaria | https://sketchfab.com/3d-models/computer-monitor-lowpoly-model-1d4ee42eda804b02b05b63721921c1d7 | CC BY 4.0 | Textures shrunk; on the second table in the terminal room |
+| `old_computer.glb` | Old Computer | Shrimp Goombason | https://sketchfab.com/3d-models/old-computer-2ab893e970fb4c5dad59000026b0fb15 | CC BY 4.0 | On the second table in the terminal room |
 
 The credits are also shown on the site, in the sources section.

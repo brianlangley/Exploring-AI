@@ -4,10 +4,10 @@ const copy = computed(() => messages.value.costs)
 
 // From lmstudio.ai/pricing, checked 25 November 2026.
 const plans = computed(() => [
-  { name: 'Free', price: '$0', points: copy.value.plans.free, highlight: true },
-  { name: 'Bionic+', price: `$20 ${copy.value.perMonth}`, points: copy.value.plans.plus, highlight: false },
-  { name: 'Pro', price: `$100 ${copy.value.perMonth}`, points: copy.value.plans.pro, highlight: false },
-  { name: 'Enterprise', price: copy.value.contactSales, points: copy.value.plans.enterprise, highlight: false },
+  { name: 'Free', amount: 0, points: copy.value.plans.free, highlight: true },
+  { name: 'Bionic+', amount: 20, points: copy.value.plans.plus, highlight: false },
+  { name: 'Pro', amount: 100, points: copy.value.plans.pro, highlight: false },
+  { name: 'Enterprise', amount: undefined, points: copy.value.plans.enterprise, highlight: false },
 ])
 </script>
 
@@ -19,8 +19,12 @@ const plans = computed(() => [
           <h3 class="font-display text-lg font-semibold text-highlighted">
             {{ plan.name }}
           </h3>
-          <p class="mt-1 font-serif text-4xl text-highlighted">
-            {{ plan.price }}
+          <p v-if="plan.amount === undefined" class="mt-2 font-serif text-4xl text-highlighted">
+            {{ copy.contactSales }}
+          </p>
+          <p v-else class="mt-2 font-serif text-highlighted">
+            <span class="text-6xl">$<CountUp :to="plan.amount" /></span>
+            <span v-if="plan.amount > 0" class="ml-1 font-sans text-sm text-muted">{{ copy.perMonth }}</span>
           </p>
           <ul class="mt-4 flex flex-col gap-2 text-sm text-default">
             <li v-for="point in plan.points" :key="point" class="flex gap-2">

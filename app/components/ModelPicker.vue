@@ -33,10 +33,10 @@ const cloudNames = computed(() => cloudModels.map(model => model.name).join(', '
   <ContentSection id="models" :eyebrow="copy.eyebrow" :title="copy.title" :intro="copy.intro(verifiedOn)">
     <div class="flex flex-col gap-4 @2xl:flex-row @2xl:gap-10">
       <UFormField :label="copy.tier" name="tier">
-        <URadioGroup v-model="tier" :items="tierOptions" orientation="horizontal" variant="table" class="mt-2" />
+        <URadioGroup v-model="tier" :items="tierOptions" orientation="horizontal" variant="table" class="mt-2" :ui="{ fieldset: 'flex-wrap' }" />
       </UFormField>
       <UFormField :label="copy.canDo" name="capability">
-        <URadioGroup v-model="capability" :items="capabilityOptions" orientation="horizontal" variant="table" class="mt-2" />
+        <URadioGroup v-model="capability" :items="capabilityOptions" orientation="horizontal" variant="table" class="mt-2" :ui="{ fieldset: 'flex-wrap' }" />
       </UFormField>
     </div>
 

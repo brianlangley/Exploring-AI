@@ -17,11 +17,11 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'nl' },
-      title: 'LM Studio, uitgelegd',
+      title: 'Exploring LM',
       meta: [
         { name: 'description', content: description },
         { property: 'og:type', content: 'website' },
-        { property: 'og:title', content: 'LM Studio, uitgelegd' },
+        { property: 'og:title', content: 'Exploring LM' },
         { property: 'og:description', content: description },
       ],
     },

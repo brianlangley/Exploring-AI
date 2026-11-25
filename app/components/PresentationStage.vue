@@ -22,9 +22,13 @@ const { messages } = useLocale()
       :class="transition === 'fade' ? 'opacity-100' : 'opacity-0'"
     />
 
-    <!-- Into the terminal screen: our own grid scan with code rain, no film imagery. -->
-    <Transition leave-active-class="transition-opacity duration-500" leave-to-class="opacity-0">
-      <div v-if="transition === 'scan'" class="scan pointer-events-none absolute inset-0 overflow-hidden bg-phosphor-950">
+    <!-- Into the terminal screen (or back out of it, played in reverse): our own grid scan with code rain, no film imagery. -->
+    <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-500" leave-to-class="opacity-0">
+      <div
+        v-if="transition === 'scan' || transition === 'scan-out'"
+        class="scan pointer-events-none absolute inset-0 overflow-hidden bg-phosphor-950"
+        :class="{ 'scan-reverse': transition === 'scan-out' }"
+      >
         <CodeRain class="absolute inset-0 opacity-40" />
         <div class="scan-grid absolute inset-0" />
         <div class="scan-line absolute inset-x-0 h-1 bg-phosphor-300" />
@@ -33,7 +37,7 @@ const { messages } = useLocale()
 
     <!-- Up against the glass: CRT scanlines and phosphor glow, kept on through the scan so it feels like one dive. -->
     <Transition leave-active-class="transition-opacity duration-500" leave-to-class="opacity-0">
-      <div v-if="transition === 'crt' || transition === 'scan'" class="crt pointer-events-none absolute inset-0" />
+      <div v-if="transition === 'crt' || transition === 'scan' || transition === 'scan-out'" class="crt pointer-events-none absolute inset-0" />
     </Transition>
   </div>
 </template>
@@ -58,6 +62,15 @@ const { messages } = useLocale()
     repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.45) 0 2px, transparent 2px 4px),
     radial-gradient(ellipse at center, color-mix(in srgb, var(--color-phosphor-500) 22%, transparent) 0%, rgb(0 0 0 / 0.75) 100%);
   animation: crt-in 0.5s ease-in forwards;
+}
+
+/* Coming back out: the grid collapses to the centre and the line sweeps up. */
+.scan-reverse .scan-grid {
+  animation: grid-open 0.6s ease-in reverse forwards;
+}
+
+.scan-reverse .scan-line {
+  animation: line-sweep 0.6s linear reverse forwards;
 }
 
 @keyframes crt-in {

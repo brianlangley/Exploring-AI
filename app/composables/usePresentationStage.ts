@@ -8,10 +8,15 @@ import { DEMO_MODEL_ID } from '~/utils/demoModel'
 
 const MOVE_SECONDS = 1.5
 const FADE_SECONDS = 0.35
-const DIVE_SECONDS = 1.1
+const DIVE_SECONDS = 1.5
 const SCAN_SECONDS = 0.9
 const ARRIVAL_SECONDS = 1.8
-const LOAD_ZOOM_SECONDS = 2.4
+// On load you stand in the doorway and walk up to the terminal; it starts typing once you are close.
+const LOAD_WALK_SECONDS = 6
+const LOAD_TYPE_DELAY_SECONDS = 3.5
+// Leaving the machine: yanked backwards out of the 3D world, then the room pulls away from the glass.
+const EXIT_PULL_SECONDS = 0.9
+const EXIT_ROOM_SECONDS = 3.4
 const BASE_FOV = 40
 const STATION_FADE_SECONDS = 1.2
 const TYPE_SECONDS_PER_CHARACTER = 0.06
@@ -46,6 +51,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     const canvas = canvasRef.value
     if (!canvas) return
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // A remount (hot reload) mid-transition must not leave the overlay up.
+    transition.value = 'none'
 
     const THREE = await import('three')
     if (isUnmounted) return
@@ -60,6 +67,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setClearColor('#030405')
     renderer.toneMapping = THREE.ACESFilmicToneMapping
+    // Only the room's window light casts shadows (the stripes of the blinds).
+    renderer.shadowMap.enabled = true
 
     const scene = new THREE.Scene()
     scene.fog = new THREE.Fog('#030405', 12, 45)
@@ -103,10 +112,14 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       camera.fov = fov
       camera.updateProjectionMatrix()
     }
-    // Room steps: sit right in front of the CRT, eyes a little above it, keyboard at the bottom of the view.
+    // Room steps: the intro sits right in front of the CRT; the end sits back a little, out of the machine, still reading the screen.
+    function screenWorld() {
+      return room!.screenCenter.clone().add(room!.group.position)
+    }
     function poseFor(target: typeof steps[number]): CameraPose {
       if (target.world !== 'room' || !room) return target.camera
-      const screen = room.screenCenter.clone().add(room.group.position)
+      const screen = screenWorld()
+      if (target.id === 'end') return { position: [screen.x + 0.3, screen.y + 0.2, screen.z + 1.5], target: [screen.x + 0.05, screen.y - 0.08, screen.z] }
       return { position: [screen.x, screen.y + 0.04, screen.z + 0.95], target: [screen.x, screen.y - 0.1, screen.z] }
     }
     function snapTo(pose: CameraPose) {
@@ -121,12 +134,12 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       moves.push(move)
       return move
     }
-    function moveTo(pose: CameraPose, seconds = MOVE_SECONDS, done?: () => void) {
+    function moveTo(pose: CameraPose, seconds = MOVE_SECONDS, done?: () => void, easing = ease) {
       const fromPosition = basePosition.clone()
       const fromTarget = cameraTarget.clone()
       const { position, target } = poseVectors(pose)
       play(seconds, (progress) => {
-        const eased = ease(progress)
+        const eased = easing(progress)
         basePosition.lerpVectors(fromPosition, position, eased)
         cameraTarget.lerpVectors(fromTarget, target, eased)
       }, done)
@@ -176,6 +189,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     const orbit = { yaw: 0, pitch: 0, wantedYaw: 0, wantedPitch: 0 }
     let drag: { x: number, y: number, yaw: number, pitch: number } | undefined
     let isDiving = false
+    let shake = 0
     // The demo step lays the HTML screen over the 3D monitor, so its view must hold still.
     const isViewLocked = () => step.value.panel === 'screen'
     function onPointerDown(event: PointerEvent) {
@@ -211,6 +225,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       spherical.phi = Math.max(0.15, Math.min(Math.PI - 0.15, spherical.phi - orbit.pitch + sway * Math.sin(seconds * 0.27) * 0.015))
       camera.position.copy(cameraTarget).add(offset.setFromSpherical(spherical))
       camera.lookAt(cameraTarget)
+      // Shake while being pulled in or out of the machine.
+      if (shake) camera.position.add(offset.set(Math.random() - 0.5, Math.random() - 0.5, 0).multiplyScalar(shake))
     }
 
     // A warm spotlight that travels with the camera from step to step.
@@ -241,6 +257,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       moves = []
       setFov(BASE_FOV)
       isDiving = false
+      shake = 0
+      room?.setSurge(0)
       orbit.wantedYaw = 0
       orbit.wantedPitch = 0
       screenRect.value = null
@@ -248,36 +266,16 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       revealAllStationsUpTo()
 
       if (newStep.world === oldStep.world) {
-        moveTo(newStep.camera, MOVE_SECONDS, () => revealStation())
+        moveTo(poseFor(newStep), MOVE_SECONDS, () => revealStation())
         revealStation()
         return
       }
-      const isDive = oldStep.id === 'intro' && newStep.world === 'road' && room
-      if (isDive && !prefersReducedMotion) {
-        // 1. Lean into the CRT while the lens zooms; scanlines take over the view near the glass.
-        const screen = room.screenCenter.clone().add(room.group.position)
-        isDiving = true
-        play(DIVE_SECONDS, progress => setFov(BASE_FOV - 18 * ease(progress)))
-        play(DIVE_SECONDS * 0.55, () => {}, () => {
-          transition.value = 'crt'
-        })
-        moveTo({ position: [screen.x, screen.y, screen.z + 0.06], target: [screen.x, screen.y, screen.z - 1] }, DIVE_SECONDS, () => {
-          // 2. Inside the machine: phosphor grid and code rain.
-          transition.value = 'scan'
-          play(SCAN_SECONDS / 2, () => {}, () => {
-            // 3. Sucked through: far back with a very wide lens, rushing in to the first station.
-            const arrival = poseVectors(newStep.camera)
-            snapTo({ position: [arrival.position.x, arrival.position.y + 2, arrival.position.z + 16], target: newStep.camera.target })
-            setFov(105)
-            isDiving = false
-            play(ARRIVAL_SECONDS, progress => setFov(105 - (105 - BASE_FOV) * ease(progress)))
-            moveTo(newStep.camera, ARRIVAL_SECONDS)
-            revealStation()
-            play(SCAN_SECONDS / 2, () => {}, () => {
-              transition.value = 'none'
-            })
-          })
-        })
+      if (room && !prefersReducedMotion && oldStep.world === 'room') {
+        diveIntoScreen(newStep)
+        return
+      }
+      if (room && !prefersReducedMotion && newStep.world === 'room') {
+        pullOutOfScreen(newStep)
         return
       }
       transition.value = 'fade'
@@ -289,6 +287,77 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
         })
       })
     }
+
+    const accelerate = (progress: number) => progress ** 3
+    const settle = (progress: number) => 1 - (1 - progress) ** 3
+
+    // Sucked into the computer: the camera accelerates at the glass while the lens widens (the room stretches away),
+    // the screen floods the room with green and the view shakes. Then the scan, then the rush into the new world.
+    function diveIntoScreen(newStep: typeof steps[number]) {
+      const screen = screenWorld()
+      isDiving = true
+      play(DIVE_SECONDS, (progress) => {
+        setFov(BASE_FOV + 45 * accelerate(progress))
+        room!.setSurge(progress ** 2)
+        shake = 0.006 * accelerate(progress)
+      })
+      play(DIVE_SECONDS * 0.82, () => {}, () => {
+        transition.value = 'crt'
+      })
+      moveTo({ position: [screen.x, screen.y, screen.z + 0.05], target: [screen.x, screen.y, screen.z - 1] }, DIVE_SECONDS, () => {
+        // Inside the machine: phosphor grid and code rain.
+        shake = 0
+        transition.value = 'scan'
+        play(SCAN_SECONDS / 2, () => {}, () => {
+          // Through: far back with a very wide lens, rushing in to the first stop.
+          room!.setSurge(0)
+          const arrival = poseFor(newStep)
+          snapTo({ position: [arrival.position[0], arrival.position[1] + 2, arrival.position[2] + 16], target: arrival.target })
+          setFov(105)
+          isDiving = false
+          play(ARRIVAL_SECONDS, progress => setFov(105 - (105 - BASE_FOV) * ease(progress)))
+          moveTo(arrival, ARRIVAL_SECONDS)
+          revealStation()
+          play(SCAN_SECONDS / 2, () => {}, () => {
+            transition.value = 'none'
+          })
+        })
+      }, accelerate)
+    }
+
+    // The way back out: yanked backwards out of the 3D world into the code, then you are nose to the glass
+    // in the room again, and the room pulls away until you sit back, looking at the screen.
+    function pullOutOfScreen(newStep: typeof steps[number]) {
+      const away = basePosition.clone().sub(cameraTarget).setLength(14).add(basePosition)
+      play(EXIT_PULL_SECONDS, (progress) => {
+        setFov(BASE_FOV + 60 * accelerate(progress))
+        shake = 0.05 * accelerate(progress)
+      })
+      play(EXIT_PULL_SECONDS * 0.6, () => {}, () => {
+        transition.value = 'scan-out'
+      })
+      moveTo({ position: away.toArray(), target: cameraTarget.toArray() }, EXIT_PULL_SECONDS, () => {
+        shake = 0
+        play(SCAN_SECONDS * 0.6, () => {}, () => {
+          const screen = screenWorld()
+          snapTo({ position: [screen.x, screen.y, screen.z + 0.05], target: [screen.x, screen.y, screen.z - 1] })
+          setFov(18)
+          room!.setSurge(1)
+          transition.value = 'crt'
+          // The terminal starts typing once you are nearly back in your seat.
+          stepStart = performance.now() + EXIT_ROOM_SECONDS * 600
+          play(EXIT_ROOM_SECONDS, (progress) => {
+            setFov(18 + (BASE_FOV - 18) * settle(progress))
+            room!.setSurge(1 - settle(progress))
+          })
+          moveTo(poseFor(newStep), EXIT_ROOM_SECONDS, undefined, settle)
+          play(0.35, () => {}, () => {
+            transition.value = 'none'
+          })
+        })
+      }, accelerate)
+    }
+
     const stopWatchingStep = watch(stepIndex, goToStep)
 
     // Terminal text: types out on the intro and end steps.
@@ -300,7 +369,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       if (!room || step.value.world !== 'room') return
       const lines = terminalLines()
       const total = lines.join('').length
-      const typed = prefersReducedMotion ? total : Math.floor((now - stepStart) / 1000 / TYPE_SECONDS_PER_CHARACTER)
+      const typed = prefersReducedMotion ? total : Math.max(0, Math.floor((now - stepStart) / 1000 / TYPE_SECONDS_PER_CHARACTER))
       let left = Math.min(typed, total)
       const visible = lines.map((line) => {
         const part = line.slice(0, left)
@@ -360,9 +429,12 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       if (!current || current.left !== rect.left || current.top !== rect.top || current.width !== rect.width || current.height !== rect.height) screenRect.value = rect
     }
 
-    // On load the camera starts wide and rolls up to the terminal, as if you pull up a chair.
+    // On load you stand in the doorway of the dark room and walk up to the terminal, as if you pull up a chair.
     snapTo(step.value.camera)
-    if (step.value.world === 'room') moveTo(poseFor(step.value), LOAD_ZOOM_SECONDS)
+    if (step.value.world === 'room') {
+      moveTo(poseFor(step.value), LOAD_WALK_SECONDS)
+      if (!prefersReducedMotion) stepStart = performance.now() + LOAD_TYPE_DELAY_SECONDS * 1000
+    }
     let frame = 0
     let lastTerminalDraw = 0
     function render(now: number) {
@@ -380,6 +452,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       applyView(now / 1000)
       updateSpotlight()
       road?.update(now / 1000)
+      room?.update(now / 1000)
       desk?.pulseCables(now / 1000)
       updateScreenRect()
       // Canvas redraw costs a texture upload: 15 times a second is plenty for typing.

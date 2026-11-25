@@ -9,13 +9,15 @@ function toggleLocale() {
 
 <template>
   <header>
-    <UContainer class="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 py-3">
-      <a href="#top" class="rounded-sm font-display text-lg font-semibold tracking-tight text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+    <UContainer class="flex h-13 items-center justify-between gap-3 sm:gap-6">
+      <a href="#top" class="flex shrink-0 items-center gap-2 rounded-sm font-display text-[15px] font-semibold tracking-tight text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+        <img src="/brand/LM Studio Icon Color.svg" alt="" class="size-5">
         {{ messages.header.title }}
       </a>
-      <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <nav :aria-label="messages.header.navLabel">
-          <ul class="flex flex-wrap gap-x-5 gap-y-1 text-sm font-medium">
+      <div class="flex min-w-0 items-center gap-3 sm:gap-5">
+        <!-- One line that scrolls sideways on small screens instead of wrapping the bar. -->
+        <nav :aria-label="messages.header.navLabel" class="overflow-x-auto [scrollbar-width:none] max-md:shrink-0 md:min-w-0">
+          <ul class="flex gap-x-6 whitespace-nowrap py-1 text-xs font-medium">
             <!-- Back to the start of the presentation route. -->
             <li>
               <NuxtLink
@@ -26,7 +28,8 @@ function toggleLocale() {
                 {{ messages.nav.intro }}
               </NuxtLink>
             </li>
-            <li v-for="section in sections" :key="section.id">
+            <!-- Phones: only the intro link; the sections follow each other on the page anyway. -->
+            <li v-for="section in sections" :key="section.id" class="max-md:hidden">
               <a
                 :href="`#${section.id}`"
                 class="rounded-sm text-muted transition-colors hover:text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
@@ -37,9 +40,10 @@ function toggleLocale() {
           </ul>
         </nav>
         <UButton
-          size="sm"
+          size="xs"
           color="neutral"
-          variant="outline"
+          variant="soft"
+          class="shrink-0"
           icon="i-lucide-languages"
           :label="messages.switchTo"
           :aria-label="messages.switchLabel"

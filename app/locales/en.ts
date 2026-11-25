@@ -4,7 +4,7 @@ export const en = {
   switchTo: 'Nederlands',
   switchLabel: 'Bekijk deze site in het Nederlands',
 
-  header: { title: 'LM Studio, Explained', navLabel: 'Sections' },
+  header: { title: 'Exploring LM', navLabel: 'Sections' },
   nav: {
     intro: 'Intro',
     what: 'What it is',
@@ -203,6 +203,20 @@ export const en = {
     close: 'Close the tip',
     hide: 'Hide Floppy',
     next: 'Next',
+    quips: {
+      poke: [
+        'Hey! Vintage hardware. Handle with care.',
+        'Poke me again and I\'ll format myself.',
+        'I have 1.44 MB of patience. You\'re using it up.',
+        'Ow. Mind the write-protect tab!',
+      ],
+      bored: [
+        'Still there? I could defragment while we wait.',
+        'Fun fact: I used to be cutting edge. Now I\'m the save icon.',
+        'Take your time. I\'ve been waiting since 1987.',
+      ],
+      wake: 'Huh? I wasn\'t asleep. I was... spinning down.',
+    },
     tips: {
       intro: 'Hi, I\'m Floppy. I hold 1.44 MB. Press Enter and we go into the computer.',
       y1950: 'No screen, no keyboard: programming meant plugging cables.',

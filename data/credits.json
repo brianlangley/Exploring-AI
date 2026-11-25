@@ -51,11 +51,11 @@
       "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
     },
     {
-      "name": "Phone",
-      "author": "schmoldt.art",
-      "url": "https://sketchfab.com/3d-models/phone-eaa0a0cbce964b2099b955f5ea241eee",
-      "licence": "CC BY 4.0",
-      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+      "name": "Mobile phone",
+      "author": "Alain Sorazu",
+      "url": "https://sketchfab.com/3d-models/mobile-phone-4a97a633ad584ba19110e1730f7744c1",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
     },
     {
       "name": "Smart Home",
@@ -68,6 +68,20 @@
       "name": "Raspberry Pi 3",
       "author": "JoSaCo",
       "url": "https://sketchfab.com/3d-models/raspberry-pi-3-2d308283fc0f4d27b81f17a2793c5c4d",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Computer Monitor Lowpoly Model",
+      "author": "Marco Zakaria",
+      "url": "https://sketchfab.com/3d-models/computer-monitor-lowpoly-model-1d4ee42eda804b02b05b63721921c1d7",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Old Computer",
+      "author": "Shrimp Goombason",
+      "url": "https://sketchfab.com/3d-models/old-computer-2ab893e970fb4c5dad59000026b0fb15",
       "licence": "CC BY 4.0",
       "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
     }

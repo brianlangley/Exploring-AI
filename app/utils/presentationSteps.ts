@@ -53,7 +53,7 @@ function at(world: StageWorld, position: [number, number, number], target: [numb
 }
 
 export const PRESENTATION_STEPS: PresentationStep[] = [
-  { id: 'intro', slug: 'intro', world: 'room', panel: 'none', camera: at('room', [0.9, 1.7, 2.6], [0, 1.25, 0]) },
+  { id: 'intro', slug: 'intro', world: 'room', panel: 'none', camera: at('room', [-0.9, 1.55, 4.2], [0.2, 1.05, 0]) },
   { id: 'y1950', slug: '1950', world: 'road', panel: 'caption', camera: at('road', [2.2, 2.0, 4.4], [0, 1.1, 0]) },
   { id: 'y1966', slug: '1966-1997', world: 'road', panel: 'caption', camera: at('road', [1.5, 3.0, -9.5], [0, 1.3, -17]) },
   { id: 'y2012', slug: '2012', world: 'road', panel: 'caption', camera: at('road', [2.6, 2.4, -25.6], [0, 1.3, -30]) },
@@ -67,5 +67,5 @@ export const PRESENTATION_STEPS: PresentationStep[] = [
   { id: 'verdict', slug: 'oordeel', world: 'desk', panel: 'section', camera: at('desk', [6, 4, -5], [0, 1.6, -0.5]) },
   { id: 'alternatives', slug: 'alternatieven', world: 'desk', panel: 'section', camera: at('desk', [8, 6, 1], [0, 1.4, 0]) },
   { id: 'further', slug: 'verder', world: 'desk', panel: 'section', camera: at('desk', [11, 4.4, 7.5], [4.2, 1.1, 0.2]) },
-  { id: 'end', slug: 'einde', world: 'room', panel: 'none', camera: at('room', [0.9, 1.7, 2.6], [0, 1.25, 0]) },
+  { id: 'end', slug: 'einde', world: 'room', panel: 'none', camera: at('room', [-0.9, 1.55, 4.2], [0.2, 1.05, 0]) },
 ]
