@@ -174,7 +174,6 @@ export const en = {
     stepOf: (current: number, total: number) => `Step ${String(current).padStart(2, '0')} / ${total}`,
     stepsLabel: 'Steps',
     sound: 'Sound',
-    music: 'Music',
     goToStep: (name: string) => `Go to: ${name}`,
     introHint: 'Press Enter, → or click to start',
     loading: 'Loading the 3D scene...',
@@ -303,6 +302,33 @@ export const en = {
     serverRunning: 'Server running',
     curlQuestion: 'Hi!',
     curlAnswer: 'Hi! How can I help?',
+    serverInfo: [
+      {
+        title: 'How it works',
+        items: [
+          'LM Studio opens a small web server on your own computer, on port 1234.',
+          'It speaks the same API as OpenAI, so apps and scripts connect by changing one URL.',
+          'The model runs on your own hardware. Nothing is sent to the internet.',
+        ],
+      },
+      {
+        title: 'Benefits',
+        items: [
+          'Private: prompts and answers never leave the machine.',
+          'Cheap to run: no bill per token, and it works offline.',
+          'Drop-in: existing tools and code keep working without a rewrite.',
+        ],
+      },
+      {
+        title: 'What it means for a company',
+        items: [
+          'Data stays in-house, so customer and contract data is easier to keep within privacy rules such as GDPR.',
+          'Predictable cost: hardware once, instead of a bill that grows with every request.',
+          'Control: you choose, test and pin the model version, and no vendor can change or retire it.',
+        ],
+      },
+    ],
+    serverValue: 'The value: AI inside your own products and tools, with no data leaving the building.',
   },
 
   alternatives: {

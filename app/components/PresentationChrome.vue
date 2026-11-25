@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { steps, stepIndex, step, isFirst, isLast, goTo, next, previous } = usePresentation()
 const { locale, messages, setLocale } = useLocale()
-const { isMuted, isMusicOn, toggleMute, toggleMusic } = useStageSound()
+const { isMuted, toggleMute } = useStageSound()
 
 const stepNames = computed(() => messages.value.route.stepNames)
 const counter = computed(() => messages.value.route.stepOf(stepIndex.value + 1, steps.length))
@@ -30,19 +30,6 @@ function toggleLocale() {
         :aria-pressed="!isMuted"
         :title="messages.route.sound"
         @click="toggleMute"
-      />
-      <!-- Music only; dimmed when off (Lucide has no "music off" icon). Disabled while all sound is muted. -->
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-music"
-        :class="isMusicOn && !isMuted ? '' : 'opacity-40'"
-        :disabled="isMuted"
-        :aria-label="messages.route.music"
-        :aria-pressed="isMusicOn"
-        :title="messages.route.music"
-        @click="toggleMusic"
       />
       <UButton
         size="sm"

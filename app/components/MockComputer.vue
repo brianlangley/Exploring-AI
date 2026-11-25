@@ -1,29 +1,26 @@
 <script setup lang="ts">
-// Simulated computer on the 3D monitor (PLAN-v3 section 3). Our own desktop style, clearly labelled as a simulation.
-// Designed at 1280 x 704 and scaled to the monitor's size on the page.
-const BASE_WIDTH = 1280
-const BASE_HEIGHT = 704
+import { MOCK_HEIGHT, MOCK_WIDTH } from '~/utils/screenQuad'
 
-const screenRect = useState<{ left: number, top: number, width: number, height: number } | null>('mock-screen-rect', () => null)
+// Simulated computer on the 3D monitor (PLAN-v3 section 3). Our own desktop style, clearly labelled as a simulation.
+// Designed at 1280 x 704, then warped onto the monitor's glass with the transform from the 3D stage.
+const screenTransform = useState<string | null>('mock-screen-transform', () => null)
 const { stage, phase, progress, run, openStage } = useMockComputer()
 const { messages } = useLocale()
 const copy = computed(() => messages.value.mock)
 
-const frameStyle = computed(() => {
-  const rect = screenRect.value
-  if (!rect) return undefined
-  const scale = Math.min(rect.width / BASE_WIDTH, rect.height / BASE_HEIGHT)
-  return {
-    left: `${rect.left + (rect.width - BASE_WIDTH * scale) / 2}px`,
-    top: `${rect.top + (rect.height - BASE_HEIGHT * scale) / 2}px`,
-    width: `${BASE_WIDTH}px`,
-    height: `${BASE_HEIGHT}px`,
-    transform: `scale(${scale})`,
-  }
-})
+const frameStyle = computed(() => screenTransform.value
+  ? { left: '0px', top: '0px', width: `${MOCK_WIDTH}px`, height: `${MOCK_HEIGHT}px`, transform: screenTransform.value }
+  : undefined)
 
 const isAppStage = computed(() => ['discover', 'load', 'chat', 'server'].includes(stage.value))
 const percent = computed(() => `${Math.round(progress.value * 100)}%`)
+
+// A click sound for every button press inside the simulated computer.
+const { uiClick } = useStageSound()
+function onPress(event: PointerEvent) {
+  const button = (event.target as HTMLElement).closest('button')
+  if (button && !button.disabled) uiClick()
+}
 </script>
 
 <template>
@@ -34,6 +31,7 @@ const percent = computed(() => `${Math.round(progress.value * 100)}%`)
       :style="frameStyle"
       role="region"
       :aria-label="copy.label"
+      @pointerdown="onPress"
     >
       <!-- Our own desktop: soft gradient, menu bar, dock. -->
       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,#2a2150,transparent_60%),radial-gradient(ellipse_at_80%_90%,#0f3b2b,transparent_55%)]" />

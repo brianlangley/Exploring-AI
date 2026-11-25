@@ -174,7 +174,6 @@ export const nl: Messages = {
     stepOf: (current: number, total: number) => `Stap ${String(current).padStart(2, '0')} / ${total}`,
     stepsLabel: 'Stappen',
     sound: 'Geluid',
-    music: 'Muziek',
     goToStep: (name: string) => `Ga naar: ${name}`,
     introHint: 'Druk op Enter, → of klik om te beginnen',
     loading: 'De 3D-scène wordt geladen...',
@@ -303,6 +302,33 @@ export const nl: Messages = {
     serverRunning: 'Server draait',
     curlQuestion: 'Hoi!',
     curlAnswer: 'Hoi! Waarmee kan ik helpen?',
+    serverInfo: [
+      {
+        title: 'Hoe het werkt',
+        items: [
+          'LM Studio start een kleine webserver op je eigen computer, op poort 1234.',
+          'Die spreekt dezelfde API als OpenAI, dus apps en scripts verbinden door één URL te wijzigen.',
+          'Het model draait op je eigen hardware. Er gaat niets naar het internet.',
+        ],
+      },
+      {
+        title: 'Voordelen',
+        items: [
+          'Privé: vragen en antwoorden verlaten de computer nooit.',
+          'Goedkoop: geen rekening per token, en het werkt offline.',
+          'Plug-and-play: bestaande tools en code blijven werken zonder herschrijven.',
+        ],
+      },
+      {
+        title: 'Wat het betekent voor een bedrijf',
+        items: [
+          'Data blijft intern, zodat klant- en contractgegevens makkelijker binnen de privacyregels (AVG) blijven.',
+          'Voorspelbare kosten: eenmalig hardware, in plaats van een rekening die met elk verzoek groeit.',
+          'Controle: jij kiest, test en bevriest de modelversie, en geen leverancier kan die wijzigen of stopzetten.',
+        ],
+      },
+    ],
+    serverValue: 'De waarde: AI in je eigen producten en tools, zonder dat data het gebouw verlaat.',
   },
 
   alternatives: {

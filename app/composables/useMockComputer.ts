@@ -22,12 +22,24 @@ export function useMockComputer() {
 
   const stage = computed(() => MOCK_STAGES[stageIndex.value]!)
   const isLastStage = computed(() => stageIndex.value === MOCK_STAGES.length - 1)
+  const sound = useStageSound()
+  // What you hear while an action runs, and how often (ms): downloads chatter, the installer grinds, loading whirs, the chat types.
+  const ACTIVITY: Record<MockStage, { every: number, play: (progress: number) => void }> = {
+    desktop: { every: 1000, play: () => {} },
+    browser: { every: 70, play: sound.dataBlip },
+    installer: { every: 110, play: sound.diskGrind },
+    discover: { every: 70, play: sound.dataBlip },
+    load: { every: 80, play: sound.loadWhir },
+    chat: { every: 75, play: sound.token },
+    server: { every: 120, play: sound.dataBlip },
+  }
 
   let frame = 0
   function finish() {
     cancelAnimationFrame(frame)
     progress.value = 1
     phase.value = 'done'
+    sound.chime()
   }
 
   function run() {
@@ -44,10 +56,19 @@ export function useMockComputer() {
     phase.value = 'running'
     progress.value = 0
     const start = performance.now()
+    const activity = ACTIVITY[stage.value]
+    let lastSound = start
     const tick = (now: number) => {
       progress.value = Math.min(1, (now - start) / 1000 / seconds)
-      if (progress.value >= 1) finish()
-      else frame = requestAnimationFrame(tick)
+      if (progress.value >= 1) {
+        finish()
+        return
+      }
+      if (now - lastSound >= activity.every) {
+        lastSound = now
+        activity.play(progress.value)
+      }
+      frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
   }
@@ -57,6 +78,7 @@ export function useMockComputer() {
     stageIndex.value = Math.min(MOCK_STAGES.length - 1, Math.max(0, index))
     phase.value = 'idle'
     progress.value = 0
+    sound.windowOpen()
   }
 
   // Presenter's "next": run the action, or finish it, or open the next stage. False when the whole flow is done.

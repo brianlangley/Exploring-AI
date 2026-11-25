@@ -1,20 +1,13 @@
-// Sound for the presentation: effects made in the browser with the Web Audio API, plus one background music file.
+// Sound for the presentation: effects made in the browser with the Web Audio API.
 // Browsers only allow sound after the visitor clicks or presses a key: until then every call is silent.
 const MUTED_KEY = 'lm-explained-sound-muted'
-const MUSIC_OFF_KEY = 'lm-explained-music-off'
 const MASTER_VOLUME = 0.6
 const HUM_VOLUME = 0.025
-// Background track ("The Grid Part" by pietiX, see public/music/README.md): well under the clicks and whooshes.
-const MUSIC_FILE = '/music/pietix-the-grid-part-514948.mp3'
-const MUSIC_VOLUME = 0.07
-const MUSIC_FADE_IN_SECONDS = 4
 
 let context: AudioContext | undefined
 let master: GainNode | undefined
 let noise: AudioBuffer | undefined
 let humGain: GainNode | undefined
-let musicGain: GainNode | undefined
-let isMusicWanted = true
 // Remembered so the hum starts right away if audio unlocks while you are already in the room.
 let isHumWanted = false
 
@@ -29,15 +22,6 @@ function setUp() {
   noise = context.createBuffer(1, context.sampleRate, context.sampleRate)
   const samples = noise.getChannelData(0)
   for (let index = 0; index < samples.length; index++) samples[index] = Math.random() * 2 - 1
-  // Music streams from the file (no full download first) and loops; it fades in once audio unlocks.
-  const music = new Audio(MUSIC_FILE)
-  music.loop = true
-  music.preload = 'none'
-  musicGain = context.createGain()
-  musicGain.gain.setValueAtTime(0.0001, context.currentTime)
-  if (isMusicWanted) musicGain.gain.exponentialRampToValueAtTime(MUSIC_VOLUME, context.currentTime + MUSIC_FADE_IN_SECONDS)
-  context.createMediaElementSource(music).connect(musicGain).connect(master)
-  music.play().catch(() => {})
   // CRT hum: mains hum and its overtone, very quiet, always running; the room turns it up and down.
   humGain = context.createGain()
   humGain.gain.value = isHumWanted ? HUM_VOLUME : 0
@@ -91,7 +75,6 @@ function tone(options: { seconds: number, volume: number, type: OscillatorType, 
 
 export function useStageSound() {
   const isMuted = useState('stage-sound-muted', () => false)
-  const isMusicOn = useState('stage-music-on', () => true)
 
   function applyMute() {
     if (master && context) master.gain.setTargetAtTime(isMuted.value ? 0 : MASTER_VOLUME, context.currentTime, 0.05)
@@ -101,8 +84,6 @@ export function useStageSound() {
   function install() {
     try {
       isMuted.value = localStorage.getItem(MUTED_KEY) === 'true'
-      isMusicOn.value = localStorage.getItem(MUSIC_OFF_KEY) !== 'true'
-      isMusicWanted = isMusicOn.value
     }
     catch {
       // Storage blocked (private window): the choice just isn't remembered.
@@ -132,25 +113,10 @@ export function useStageSound() {
     applyMute()
   }
 
-  // Music on its own switch: effects stay, the track fades out (or back in).
-  function toggleMusic() {
-    isMusicOn.value = !isMusicOn.value
-    isMusicWanted = isMusicOn.value
-    try {
-      localStorage.setItem(MUSIC_OFF_KEY, String(!isMusicOn.value))
-    }
-    catch {
-      // Storage blocked (private window): the choice just isn't remembered.
-    }
-    if (musicGain && context) musicGain.gain.setTargetAtTime(isMusicOn.value ? MUSIC_VOLUME : 0, context.currentTime, 0.4)
-  }
-
   return {
     isMuted,
-    isMusicOn,
     install,
     toggleMute,
-    toggleMusic,
     // One key of a mechanical keyboard: a bright click and a soft thud, a little different every time.
     keyClick: () => {
       noiseBurst({ seconds: 0.035, volume: 0.18, filter: 'bandpass', from: 2500 + Math.random() * 1800, q: 2 })
@@ -197,6 +163,29 @@ export function useStageSound() {
       for (const [index, frequency] of [523, 659, 784, 1047].entries()) {
         tone({ seconds: 0.09, volume: 0.03, type: 'square', from: frequency, delay: index * 0.07 })
       }
+    },
+    // The simulated computer. A mouse click: duller and rounder than a key.
+    uiClick: () => {
+      noiseBurst({ seconds: 0.02, volume: 0.09, filter: 'bandpass', from: 1400, q: 3 })
+      tone({ seconds: 0.035, volume: 0.04, type: 'sine', from: 900, to: 500 })
+    },
+    // A window or page opening.
+    windowOpen: () => {
+      tone({ seconds: 0.12, volume: 0.035, type: 'triangle', from: 480, to: 900 })
+      noiseBurst({ seconds: 0.15, volume: 0.025, filter: 'bandpass', from: 700, to: 2200, q: 0.8 })
+    },
+    // Downloading: data chatter, a tiny modem-like blip each call.
+    dataBlip: () => tone({ seconds: 0.025, volume: 0.018, type: 'square', from: 900 + Math.random() * 1300 }),
+    // Installing: a short disk grind.
+    diskGrind: () => noiseBurst({ seconds: 0.05, volume: 0.05, filter: 'lowpass', from: 500 + Math.random() * 400, q: 2 }),
+    // Loading the model into memory: a whir that climbs as it fills (progress 0..1).
+    loadWhir: (progress: number) => tone({ seconds: 0.09, volume: 0.022, type: 'sawtooth', from: 90 + progress * 280 }),
+    // A streamed token in the chat: a soft key tap.
+    token: () => noiseBurst({ seconds: 0.02, volume: 0.07, filter: 'bandpass', from: 2800 + Math.random() * 1200, q: 2 }),
+    // An action finished: two rising notes.
+    chime: () => {
+      tone({ seconds: 0.18, volume: 0.05, type: 'sine', from: 784 })
+      tone({ seconds: 0.3, volume: 0.05, type: 'sine', from: 1175, delay: 0.09 })
     },
     // The CRT hum is only heard in the room.
     setHum: (isOn: boolean) => {

@@ -171,6 +171,22 @@ const curl = computed(() => `curl http://localhost:1234/v1/chat/completions \\
         </div>
         <pre class="overflow-hidden rounded-lg border border-white/10 bg-black/50 p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-zinc-300">{{ curl }}</pre>
         <pre v-if="isServerOn" class="overflow-hidden rounded-lg border border-emerald-400/30 bg-emerald-500/5 p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-emerald-200">{ "choices": [{ "message": { "role": "assistant", "content": "{{ copy.curlAnswer }}" } }] }</pre>
+        <!-- What the server is, and why a company cares. -->
+        <div class="grid grid-cols-3 gap-3">
+          <section v-for="card in copy.serverInfo" :key="card.title" class="rounded-lg border border-white/10 bg-white/5 p-3">
+            <h4 class="text-[13px] font-semibold text-violet-200">
+              {{ card.title }}
+            </h4>
+            <ul class="mt-1.5 list-disc space-y-1 pl-4 text-[12.5px] leading-snug text-zinc-300">
+              <li v-for="item in card.items" :key="item">
+                {{ item }}
+              </li>
+            </ul>
+          </section>
+        </div>
+        <p class="rounded-lg bg-violet-500/15 px-3 py-2 text-[13px] font-medium text-violet-100">
+          {{ copy.serverValue }}
+        </p>
       </div>
     </div>
   </div>

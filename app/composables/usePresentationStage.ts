@@ -5,6 +5,8 @@ import type { HistoryRoad, RoadStation } from '~/utils/historyRoad'
 import type { DeskWorld } from '~/utils/deskWorld'
 import { WORLD_ORIGINS } from '~/utils/presentationSteps'
 import { DEMO_MODEL_ID } from '~/utils/demoModel'
+import type { Point } from '~/utils/screenQuad'
+import { MOCK_HEIGHT, MOCK_WIDTH, findPanelCorners, quadToMatrix3d, sortQuad } from '~/utils/screenQuad'
 
 const MOVE_SECONDS = 1.5
 const FADE_SECONDS = 0.35
@@ -45,8 +47,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
   const { messages } = useLocale()
   const sound = useStageSound()
   const isReady = ref(false)
-  // Where the 3D monitor is on the page (CSS pixels), once the camera has arrived. Null while moving or off screen.
-  const screenRect = useState<{ left: number, top: number, width: number, height: number } | null>('mock-screen-rect', () => null)
+  // CSS transform that lays a 1280 x 704 box exactly over the 3D monitor's screen, perspective included, once the camera has arrived. Null while moving or off screen.
+  const screenTransform = useState<string | null>('mock-screen-transform', () => null)
   let cleanUp: (() => void) | undefined
   let isUnmounted = false
 
@@ -267,7 +269,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       room?.setSurge(0)
       orbit.wantedYaw = 0
       orbit.wantedPitch = 0
-      screenRect.value = null
+      screenTransform.value = null
       desk?.setDevicesVisible(newStep.id === 'further')
       revealAllStationsUpTo()
 
@@ -416,33 +418,21 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       else camera.setViewOffset(width, height, viewShift * width, 0, width, height)
     }
 
-    // Project the monitor's corners to the page once the camera stands still on the demo step.
-    const corner = new THREE.Vector3()
-    const screenBounds = new THREE.Box3()
+    // Project the monitor's four real screen corners to the page once the camera stands still on the demo step.
+    // The mock computer is warped onto that quad, so it sits on the glass even though the monitor is tilted and seen in perspective.
+    let panelCorners: ReturnType<typeof findPanelCorners> | undefined
     function updateScreenRect() {
       if (step.value.panel !== 'screen' || moves.length || transition.value !== 'none' || !desk?.screen) {
-        if (screenRect.value) screenRect.value = null
+        if (screenTransform.value) screenTransform.value = null
         return
       }
-      screenBounds.setFromObject(desk.screen)
-      let left = Infinity
-      let right = -Infinity
-      let top = Infinity
-      let bottom = -Infinity
-      for (let index = 0; index < 8; index++) {
-        corner.set(
-          index & 1 ? screenBounds.max.x : screenBounds.min.x,
-          index & 2 ? screenBounds.max.y : screenBounds.min.y,
-          index & 4 ? screenBounds.max.z : screenBounds.min.z,
-        ).project(camera)
-        left = Math.min(left, (corner.x + 1) / 2 * width)
-        right = Math.max(right, (corner.x + 1) / 2 * width)
-        top = Math.min(top, (1 - corner.y) / 2 * height)
-        bottom = Math.max(bottom, (1 - corner.y) / 2 * height)
-      }
-      const rect = { left: Math.round(left), top: Math.round(top), width: Math.round(right - left), height: Math.round(bottom - top) }
-      const current = screenRect.value
-      if (!current || current.left !== rect.left || current.top !== rect.top || current.width !== rect.width || current.height !== rect.height) screenRect.value = rect
+      panelCorners ??= findPanelCorners(THREE, desk.screen as Three.Mesh)
+      const quad = sortQuad(panelCorners.map((point) => {
+        const projected = point.clone().project(camera)
+        return [(projected.x + 1) / 2 * width, (1 - projected.y) / 2 * height] as Point
+      }))
+      const transform = quadToMatrix3d(MOCK_WIDTH, MOCK_HEIGHT, quad)
+      if (screenTransform.value !== transform) screenTransform.value = transform
     }
 
     // On load: look at the room's sign, then turn and sit down at the monitor (or walk straight up to it).
