@@ -18,6 +18,7 @@ export const en = {
   },
   footer: {
     course: 'Student project, Inholland Exploring AI 2026/27.',
+    madeBy: 'Made by',
     disclaimer: 'Unofficial student project for Inholland Exploring AI. Not affiliated with, sponsored or endorsed by LM Studio or Element Labs. LM Studio and its logos are trademarks of their owner, used here only to refer to the product.',
   },
 
@@ -242,7 +243,11 @@ export const en = {
       ],
       hijack: 'My turn. I\'ll drive for a bit.',
       hijackEnd: 'Here, have your mouse back. Barely used.',
+      hijackWarn: 'That\'s twice now. Pick me up again and I\'ll take down this whole computer. Last warning.',
+      hijackLast: 'I did warn you. Let me restart this computer for you.',
+      crashBack: 'Okay, that wasn\'t me. Probably. Have you tried turning it off and on again?',
     },
+    crashHint: 'Floppy is joking: this is a fake crash screen. Press Escape to close it.',
     tips: {
       intro: 'Hi, I\'m Floppy. I hold 1.44 MB. Press Enter and we go into the computer.',
       y1950: 'No screen, no keyboard: programming meant plugging cables.',

@@ -164,6 +164,11 @@ export function useStageSound() {
         tone({ seconds: 0.09, volume: 0.03, type: 'square', from: frequency, delay: index * 0.07 })
       }
     },
+    // The fake crash: a falling buzz and a burst of static.
+    floppyCrash: () => {
+      tone({ seconds: 0.5, volume: 0.04, type: 'sawtooth', from: 440, to: 55 })
+      noiseBurst({ seconds: 0.3, volume: 0.05, filter: 'lowpass', from: 3000, to: 200 })
+    },
     // The simulated computer. A mouse click: duller and rounder than a key.
     uiClick: () => {
       noiseBurst({ seconds: 0.02, volume: 0.09, filter: 'bandpass', from: 1400, q: 3 })

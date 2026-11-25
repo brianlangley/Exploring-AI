@@ -9,9 +9,13 @@ const BORED_AFTER = 15_000
 const SLEEP_AFTER = 45_000
 const QUIP_TIME = 4_500
 const HIJACK_TIME = 2_600
+// The third hijack lasts as long as his line is on screen, so it can be read before the crash covers everything.
+const LAST_HIJACK_TIME = QUIP_TIME + 500
 // Pick him up this often within PICKUP_WINDOW and the next landing makes him take the mouse.
 const PICKUPS_FOR_HIJACK = 3
 const PICKUP_WINDOW = 30_000
+// The third hijack ends in a fake system crash.
+const HIJACKS_FOR_CRASH = 3
 // Physics in px and seconds.
 const GRAVITY = 2600
 // The canvas is this much bigger than the grab area, so raised arms and leans are never cut off.
@@ -21,7 +25,7 @@ const WALL_BOUNCE = 0.55
 const FLOOR_BOUNCE = 0.4
 const HARD_LANDING = 1400
 
-type Mood = 'neutral' | 'happy' | 'excited' | 'surprised' | 'annoyed' | 'worried' | 'smug' | 'sleepy'
+type Mood = 'neutral' | 'happy' | 'excited' | 'surprised' | 'annoyed' | 'worried' | 'smug' | 'sleepy' | 'furious'
 // smile: -1 frown .. 1 grin, open: mouth open 0..1, brow: + angry / - sad, browY: raise, lid: eye openness.
 const FACES: Record<Mood, { smile: number, open: number, brow: number, browY: number, lid: number }> = {
   neutral: { smile: 0.25, open: 0, brow: 0, browY: 0, lid: 1 },
@@ -32,6 +36,8 @@ const FACES: Record<Mood, { smile: number, open: number, brow: number, browY: nu
   worried: { smile: -0.4, open: 0.1, brow: -0.4, browY: 0.03, lid: 0.9 },
   smug: { smile: 0.55, open: 0, brow: 0.2, browY: 0, lid: 0.55 },
   sleepy: { smile: 0, open: 0.2, brow: -0.1, browY: -0.02, lid: 0.08 },
+  // Shouting, brows slammed down: the third hijack.
+  furious: { smile: -1, open: 0.45, brow: 0.75, browY: -0.04, lid: 0.7 },
 }
 // How Floppy feels about each step. Anything missing: happy.
 const STEP_MOODS: Record<string, Mood> = {
@@ -79,6 +85,8 @@ const act = {
   squashUntil: 0,
   lastActivity: performance.now(),
   boredShown: false,
+  // 1 while he is on fire (third hijack until the crash is over), 0 otherwise. The render loop eases toward it.
+  rageTarget: 0,
 }
 // Where Floppy is: px from his home spot (bottom left), y negative is up. Velocity while airborne.
 const pos = { x: 0, y: 0, vx: 0, vy: 0, airborne: false, impact: 0, entering: false }
@@ -87,6 +95,8 @@ const walk = { target: 0, nextAt: 0, phase: 0 }
 const pointer = { x: 0, y: 0 }
 const hijack = { until: 0, x: 0, y: 0 }
 let pickups: number[] = []
+let hijackCount = 0
+const crashOs = ref<CrashOs | null>(null)
 
 // The box Floppy may move in, in his own px coordinates (the floor is y = 0).
 function bounds() {
@@ -203,7 +213,13 @@ function onPointerDown(event: PointerEvent) {
     vx: 0,
     vy: 0,
   })
-  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  // Capture keeps the drag going outside his box. Some browsers refuse it when the pointer is already gone.
+  try {
+    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  }
+  catch {
+    // Not fatal: the drag just ends when the pointer leaves his box.
+  }
 }
 function onPointerDrag(event: PointerEvent) {
   if (event.pointerId !== grab.pointerId || !canvasRef.value) return
@@ -280,17 +296,36 @@ function land() {
 // Payback: he takes the mouse for a moment. The real cursor is hidden and clicks are blocked
 // by an overlay while a fake cursor rides in his hand. Escape ends it early.
 function startHijack() {
-  hijack.until = performance.now() + HIJACK_TIME
+  hijackCount++
+  // The third time he announces what is coming, and the hijack lasts long enough to read it.
+  const isLast = hijackCount >= HIJACKS_FOR_CRASH
+  hijack.until = performance.now() + (isLast ? LAST_HIJACK_TIME : HIJACK_TIME)
   hijack.x = pointer.x
   hijack.y = pointer.y
   isHijacking.value = true
   sound.floppyHijack()
-  say(copy.value.quips.hijack, 'excited')
+  if (isLast) act.rageTarget = 1
+  say(isLast ? copy.value.quips.hijackLast : copy.value.quips.hijack, isLast ? 'furious' : 'excited')
 }
 function endHijack() {
   if (!isHijacking.value) return
   isHijacking.value = false
-  say(copy.value.quips.hijackEnd, 'smug')
+  // Third time: instead of giving the mouse back, the whole "computer" goes down.
+  if (hijackCount >= HIJACKS_FOR_CRASH && isVisible.value) {
+    hijackCount = 0
+    crashOs.value = detectOs()
+    sound.floppyCrash()
+    return
+  }
+  // The second time he warns you: one more and the computer goes down.
+  if (hijackCount === HIJACKS_FOR_CRASH - 1) say(copy.value.quips.hijackWarn, 'annoyed')
+  else say(copy.value.quips.hijackEnd, 'smug')
+}
+function endCrash() {
+  crashOs.value = null
+  act.rageTarget = 0
+  hop()
+  say(copy.value.quips.crashBack, 'worried')
 }
 function onKeyDown(event: KeyboardEvent) {
   if (event.key === 'Escape') endHijack()
@@ -299,6 +334,7 @@ function onKeyDown(event: KeyboardEvent) {
 
 function hide() {
   isHidden.value = true
+  act.rageTarget = 0
   endHijack()
   sessionStorage.setItem(HIDDEN_KEY, '1')
 }
@@ -484,6 +520,53 @@ onMounted(async () => {
   const arms = [makeArm(-1), makeArm(1)] as const
   const legs = [makeLeg(-1), makeLeg(1)] as const
 
+  // Rage (third hijack): the disk glows red, flames lick up his body and burn in his eyes.
+  const rageLight = new THREE.PointLight('#ff3b00', 0, 6)
+  rageLight.position.set(0, 0.7, 1.6)
+  scene.add(rageLight)
+  // Own copies of the model's materials, so the red glow does not touch anything shared.
+  const glowing: Three.MeshStandardMaterial[] = []
+  floppy?.holder.traverse((object) => {
+    const mesh = object as Three.Mesh
+    if (!mesh.isMesh || Array.isArray(mesh.material) || !('emissive' in mesh.material)) return
+    mesh.material = mesh.material.clone()
+    glowing.push(mesh.material as Three.MeshStandardMaterial)
+  })
+  const flameCanvas = document.createElement('canvas')
+  flameCanvas.width = 64
+  flameCanvas.height = 128
+  const flameContext = flameCanvas.getContext('2d')!
+  const flameGradient = flameContext.createRadialGradient(32, 86, 4, 32, 86, 58)
+  flameGradient.addColorStop(0, 'rgba(255, 245, 160, 1)')
+  flameGradient.addColorStop(0.35, 'rgba(255, 150, 30, 0.9)')
+  flameGradient.addColorStop(0.7, 'rgba(230, 50, 10, 0.45)')
+  flameGradient.addColorStop(1, 'rgba(200, 20, 0, 0)')
+  flameContext.fillStyle = flameGradient
+  flameContext.beginPath()
+  flameContext.ellipse(32, 74, 26, 54, 0, 0, Math.PI * 2)
+  flameContext.fill()
+  const flameTexture = new THREE.CanvasTexture(flameCanvas)
+  flameTexture.colorSpace = THREE.SRGBColorSpace
+  const makeFlame = () => new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTexture, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }))
+  const fire = new THREE.Group()
+  fire.visible = false
+  body.add(fire)
+  const FLAMES = 16
+  const flames = Array.from({ length: FLAMES }, (_, index) => {
+    const sprite = makeFlame()
+    fire.add(sprite)
+    return { sprite, x: (index / (FLAMES - 1) - 0.5) * 0.95, phase: Math.random(), speed: 0.8 + Math.random() * 0.8, size: 0.3 + Math.random() * 0.2 }
+  })
+  const eyeFlames = [-0.17, 0.17].map((x) => {
+    const sprite = makeFlame()
+    sprite.position.set(x, 0.8, front + 0.16)
+    fire.add(sprite)
+    return sprite
+  })
+  const fireColor = new THREE.Color('#ff6a00')
+  const plainWhite = new THREE.Color('#ffffff')
+  let rage = 0
+
   // Mouse: where the pupils look and which way he leans.
   const look = { x: 0, y: 0 }
   function onPointerMove(event: PointerEvent) {
@@ -516,6 +599,7 @@ onMounted(async () => {
   // Made after an await, so Vue does not stop it on unmount by itself: cleanUp does.
   const stopWatchingVisible = watch(isVisible, async (visible) => {
     if (!visible) {
+      act.rageTarget = 0
       endHijack()
       return
     }
@@ -609,10 +693,35 @@ onMounted(async () => {
     }
 
     if (act.override && now > act.override.until) act.override = null
-    const mood: Mood = held || (pos.airborne && !pos.entering) ? 'surprised' : isSleeping.value ? 'sleepy' : act.override?.mood ?? act.baseMood
+    const mood: Mood = held || (pos.airborne && !pos.entering) ? 'surprised' : act.rageTarget ? 'furious' : isSleeping.value ? 'sleepy' : act.override?.mood ?? act.baseMood
     const target = FACES[mood]
     for (const key of ['smile', 'open', 'brow', 'browY', 'lid'] as const) face[key] = approach(face[key], target[key], 10, dt)
     drawMouth(face.smile, face.open)
+
+    // Rage: red glow, orange eyes and hands, flames. Fades out again slowly once it is over.
+    rage = approach(rage, act.rageTarget, act.rageTarget ? 4 : 1.5, dt)
+    const burning = rage > 0.02
+    fire.visible = burning
+    rageLight.intensity = rage * 18
+    for (const material of glowing) {
+      material.emissive.set('#ff2200')
+      material.emissiveIntensity = rage * 0.7
+    }
+    white.color.copy(plainWhite).lerp(fireColor, rage)
+    white.emissive.set('#ff3300')
+    white.emissiveIntensity = rage * 0.8
+    if (burning) {
+      for (const flame of flames) {
+        const age = ((now / 1000) * flame.speed + flame.phase) % 1
+        const grow = Math.sin(age * Math.PI) * rage
+        flame.sprite.position.set(flame.x + Math.sin(now / 130 + flame.phase * 9) * 0.03, 0.05 + age * 1.05, front + 0.02 + (flame.phase - 0.5) * 0.1)
+        flame.sprite.scale.set(flame.size * 0.7 * grow, flame.size * 1.4 * grow, 1)
+      }
+      for (const [index, sprite] of eyeFlames.entries()) {
+        const flicker = (0.9 + Math.sin(now / 55 + index * 2) * 0.18) * rage
+        sprite.scale.set(0.24 * flicker, 0.5 * flicker, 1)
+      }
+    }
 
     if (now > blinkAt) blinkAt = now + 2000 + Math.random() * 3500
     const blinking = !isSleeping.value && blinkAt - now < 120
@@ -673,6 +782,8 @@ onMounted(async () => {
     if (busy) hopY = 0
     const bob = walking ? Math.abs(Math.cos(walk.phase)) * 0.04 : motion && !busy ? Math.sin(now / 700) * 0.015 : 0
     rig.position.y = hopY + bob
+    // Shaking with anger.
+    rig.position.x = motion ? Math.sin(now / 22) * 0.015 * rage : 0
     const squash = now < act.squashUntil ? 0.84 : hopY > 0 ? 1.06 : 1
     body.scale.set(2 - squash, squash, 1)
 
@@ -694,8 +805,8 @@ onMounted(async () => {
     const sway = motion ? Math.sin(now / 900) * 0.06 : 0
     let pose: [number, number, number][] = [[-0.25 - sway, 0, 0.2], [0.25 + sway, 0, -0.2]]
     if (walking) pose = [[-0.2, -stride * 0.6, 0.3], [0.2, stride * 0.6, -0.3]]
-    else if (busy || mood === 'excited' || mood === 'surprised') {
-      const pump = motion ? Math.sin(now / 120) * 0.15 : 0
+    else if (busy || mood === 'excited' || mood === 'surprised' || mood === 'furious') {
+      const pump = motion ? Math.sin(now / (mood === 'furious' ? 55 : 120)) * (mood === 'furious' ? 0.3 : 0.15) : 0
       pose = [[-2.4 - pump, 0, 0.3], [2.4 + pump, 0, -0.3]]
     }
     else if (mood === 'annoyed') pose = [[-0.7, 0, 1.9], [0.7, 0, -1.9]] // hands on hips
@@ -719,6 +830,7 @@ onMounted(async () => {
     window.removeEventListener('pointermove', onPointerMove)
     window.removeEventListener('keydown', onKeyDown)
     mouthTexture.dispose()
+    flameTexture.dispose()
     renderer.dispose()
   }
 })
@@ -783,6 +895,8 @@ onBeforeUnmount(() => {
         />
       </div>
     </Transition>
+
+    <FakeCrash v-if="crashOs" :os="crashOs" @done="endCrash" />
 
     <Teleport to="body">
       <div v-if="isHijacking" class="fixed inset-0 z-50 cursor-none" aria-hidden="true">

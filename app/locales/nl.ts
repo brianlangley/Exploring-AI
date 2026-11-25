@@ -20,6 +20,7 @@ export const nl: Messages = {
   },
   footer: {
     course: 'Studentenproject, Inholland Exploring AI 2026/27.',
+    madeBy: 'Gemaakt door',
     disclaimer: 'Onofficieel studentenproject voor Inholland Exploring AI. Niet verbonden aan, gesponsord of goedgekeurd door LM Studio of Element Labs. LM Studio en de logo\'s zijn handelsmerken van de eigenaar en worden hier alleen gebruikt om naar het product te verwijzen.',
   },
 
@@ -242,7 +243,11 @@ export const nl: Messages = {
       ],
       hijack: 'Mijn beurt. Ik rijd even.',
       hijackEnd: 'Hier, je muis terug. Nauwelijks gebruikt.',
+      hijackWarn: 'Dat is twee keer. Pak me nog een keer op en ik leg je hele computer plat. Laatste waarschuwing.',
+      hijackLast: 'Ik had je gewaarschuwd. Ik start je computer even voor je opnieuw op.',
+      crashBack: 'Oké, dat was ik niet. Waarschijnlijk. Heb je hem al uit en weer aan gezet?',
     },
+    crashHint: 'Floppy maakt een grapje: dit is een nep-crashscherm. Druk op Escape om het te sluiten.',
     tips: {
       intro: 'Hoi, ik ben Floppy. Ik pas 1,44 MB. Druk op Enter, dan gaan we de computer in.',
       y1950: 'Geen scherm, geen toetsenbord: programmeren was kabels steken.',
