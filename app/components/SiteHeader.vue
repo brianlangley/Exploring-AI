@@ -11,7 +11,7 @@ function toggleLocale() {
   <header>
     <UContainer class="flex h-13 items-center justify-between gap-3 sm:gap-6">
       <a href="#top" class="flex shrink-0 items-center gap-2 rounded-sm font-display text-[15px] font-semibold tracking-tight text-highlighted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
-        <img src="/brand/LM Studio Icon Color.svg" alt="" class="size-5">
+        <img src="/favicon.svg" alt="" class="size-5">
         {{ messages.header.title }}
       </a>
       <div class="flex min-w-0 items-center gap-3 sm:gap-5">

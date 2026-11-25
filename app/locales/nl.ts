@@ -30,6 +30,12 @@ export const nl: Messages = {
     checkDevice: 'Check mijn computer',
     whatIs: 'Wat is LM Studio?',
     watchIntro: 'Bekijk de intro',
+    chat: [
+      { question: 'Welk model past op mijn laptop met 16 GB?', answer: 'Een model van 7 tot 9B in Q4 is een veilige keuze. Het gebruikt ongeveer 6 GB, dus er blijft ruimte over voor je browser en aantekeningen.' },
+      { question: 'Werkt het ook in de trein zonder wifi?', answer: 'Ja. Zodra het model gedownload is, draait alles op je laptop. Geen verbinding nodig.' },
+      { question: 'Kan mijn eigen code met je praten?', answer: 'Start de lokale server in LM Studio en roep http://localhost:1234 aan, in hetzelfde formaat als de OpenAI API.' },
+      { question: 'Top. Vat het samen in vijf woorden.', answer: 'Lokaal, privé, offline, gratis, van jou.' },
+    ],
   },
 
   what: {

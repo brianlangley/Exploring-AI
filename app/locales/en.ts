@@ -28,6 +28,13 @@ export const en = {
     checkDevice: 'Check my device',
     whatIs: 'What is LM Studio?',
     watchIntro: 'Watch the intro',
+    // Follow-ups in the hero's chat window, after mock.chatQuestion / mock.chatAnswer. Simulated, kept short.
+    chat: [
+      { question: 'Which model fits on my 16 GB laptop?', answer: 'A 7 to 9B model at Q4 is a safe pick. It needs roughly 6 GB, which leaves room for your browser and notes.' },
+      { question: 'Does it work on a train without wifi?', answer: 'Yes. Once the model is downloaded, everything runs on your laptop. No connection needed.' },
+      { question: 'Can my own code talk to you?', answer: 'Start the local server in LM Studio, then call http://localhost:1234 in the same format as the OpenAI API.' },
+      { question: 'Nice. Sum that up in five words.', answer: 'Local, private, offline, free, yours.' },
+    ],
   },
 
   what: {
