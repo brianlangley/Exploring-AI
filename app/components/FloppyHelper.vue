@@ -14,6 +14,8 @@ const PICKUPS_FOR_HIJACK = 3
 const PICKUP_WINDOW = 30_000
 // Physics in px and seconds.
 const GRAVITY = 2600
+// The canvas is this much bigger than the grab area, so raised arms and leans are never cut off.
+const CANVAS_SCALE = 1.5
 const MAX_THROW = 2600
 const WALL_BOUNCE = 0.55
 const FLOOR_BOUNCE = 0.4
@@ -46,8 +48,11 @@ const STEP_MOODS: Record<string, Mood> = {
 
 const { step, next, isLast, isFirst } = usePresentation()
 const { messages } = useLocale()
+const sound = useStageSound()
 const rootRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+// The grab area: Floppy's own size. The canvas is bigger (room for raised arms) and ignores the pointer.
+const hitRef = ref<HTMLButtonElement | null>(null)
 const fakeCursorRef = ref<SVGSVGElement | null>(null)
 const isBubbleOpen = ref(true)
 const isHidden = ref(false)
@@ -85,22 +90,24 @@ let pickups: number[] = []
 
 // The box Floppy may move in, in his own px coordinates (the floor is y = 0).
 function bounds() {
-  const rect = canvasRef.value!.getBoundingClientRect()
+  const rect = hitRef.value!.getBoundingClientRect()
   const baseLeft = rect.left - pos.x
   const baseTop = rect.top - pos.y
-  return { minX: -baseLeft, maxX: window.innerWidth - baseLeft - rect.width, minY: -baseTop, height: rect.height }
+  // Keep his hands on screen: they reach a bit past his grab area.
+  const margin = rect.width * 0.15
+  return { minX: margin - baseLeft, maxX: window.innerWidth - baseLeft - rect.width - margin, minY: -baseTop, height: rect.height }
 }
 
 // Where he may stroll on the floor: left or right of the step navigation, never on top of it.
 function roamRange(): [number, number] {
   const root = rootRef.value!
-  const width = canvasRef.value!.clientWidth
+  const width = hitRef.value!.clientWidth
   const nav = root.parentElement?.querySelector(':scope > nav')
   const rects = nav ? [...nav.children].map(child => child.getBoundingClientRect()).filter(rect => rect.width > 0) : []
   const navLeft = rects.length ? Math.min(...rects.map(rect => rect.left)) : window.innerWidth * 0.4
   const navRight = rects.length ? Math.max(...rects.map(rect => rect.right)) : window.innerWidth * 0.6
   const left: [number, number] = [0, Math.max(0, navLeft - root.offsetLeft - width - 12)]
-  const right: [number, number] = [navRight - root.offsetLeft + 12, window.innerWidth - root.offsetLeft - width]
+  const right: [number, number] = [navRight - root.offsetLeft + 12, window.innerWidth - root.offsetLeft - width * 1.15]
   if (right[0] > right[1] || pos.x <= left[1]) return left
   if (pos.x >= right[0]) return right
   return pos.x - left[1] < right[0] - pos.x ? left : right
@@ -129,6 +136,7 @@ function say(text: string, mood: Mood) {
   clearTimeout(quipTimer)
   quipOpenedBubble = quipOpenedBubble || !isBubbleOpen.value
   quip.value = text
+  sound.floppyChatter()
   isBubbleOpen.value = true
   feel(mood, QUIP_TIME)
   quipTimer = setTimeout(() => {
@@ -160,6 +168,7 @@ function poke() {
   const now = performance.now()
   pokes = [...pokes.filter(time => now - time < 1500), now]
   hop()
+  sound.floppyHop()
   if (pokes.length >= 3) {
     pokes = []
     say(pick(copy.value.quips.poke), 'annoyed')
@@ -210,6 +219,7 @@ function onPointerDrag(event: PointerEvent) {
     isBubbleOpen.value = false
     const now = performance.now()
     pickups = [...pickups.filter(time => now - time < PICKUP_WINDOW), now]
+    sound.floppyPickup()
   }
   const dx = event.clientX - grab.lastX
   const dy = event.clientY - grab.lastY
@@ -236,6 +246,7 @@ function onPointerUp(event: PointerEvent) {
   pos.vx = stale ? 0 : clamp(grab.vx, -MAX_THROW, MAX_THROW)
   pos.vy = stale ? 0 : clamp(grab.vy, -MAX_THROW, MAX_THROW)
   pos.impact = 0
+  sound.floppyThrow(Math.min(1, Math.hypot(pos.vx, pos.vy) / MAX_THROW))
   if (reducedMotion) {
     pos.y = 0
     place()
@@ -273,6 +284,7 @@ function startHijack() {
   hijack.x = pointer.x
   hijack.y = pointer.y
   isHijacking.value = true
+  sound.floppyHijack()
   say(copy.value.quips.hijack, 'excited')
 }
 function endHijack() {
@@ -292,12 +304,15 @@ function hide() {
 }
 
 let cleanUp: (() => void) | undefined
+// Setup waits for three.js and the model: the page may be gone by then (navigation, hot reload).
+let isUnmounted = false
 onMounted(async () => {
   isHidden.value = sessionStorage.getItem(HIDDEN_KEY) === '1'
   const canvas = canvasRef.value
   if (!canvas) return
   reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const THREE = await import('three')
+  if (isUnmounted) return
   let renderer: Three.WebGLRenderer
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
@@ -313,7 +328,8 @@ onMounted(async () => {
   const light = new THREE.DirectionalLight('#ffffff', 1.4)
   light.position.set(1, 2, 3)
   scene.add(light)
-  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20)
+  // 30 degrees for his own box, widened to fit the canvas that is 1.5x bigger: same size on screen.
+  const camera = new THREE.PerspectiveCamera(2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(15)) * CANVAS_SCALE)), 1, 0.1, 20)
   camera.position.set(0, 0.76, 2.9)
   camera.lookAt(0, 0.72, 0)
 
@@ -325,6 +341,10 @@ onMounted(async () => {
   rig.add(body)
   scene.add(rig)
   const floppy = await loadModel(THREE, 'floppy.glb', 1).catch(() => undefined)
+  if (isUnmounted) {
+    renderer.dispose()
+    return
+  }
   let front = 0.03
   if (floppy) {
     body.add(floppy.holder)
@@ -493,7 +513,8 @@ onMounted(async () => {
   }
 
   // Showing up (step 2, or after step 1 again): he drops in from above the screen.
-  watch(isVisible, async (visible) => {
+  // Made after an await, so Vue does not stop it on unmount by itself: cleanUp does.
+  const stopWatchingVisible = watch(isVisible, async (visible) => {
     if (!visible) {
       endHijack()
       return
@@ -501,6 +522,7 @@ onMounted(async () => {
     pos.entering = true
     isBubbleOpen.value = false
     await nextTick()
+    if (!canvasRef.value) return
     if (reducedMotion) {
       pos.y = 0
       place()
@@ -556,6 +578,7 @@ onMounted(async () => {
           feel('surprised', 700)
           act.squashUntil = now + 120
         }
+        if (Math.abs(pos.vx) > 150) sound.floppyThud(Math.min(1, Math.abs(pos.vx) / 2000))
         pos.vx *= -WALL_BOUNCE
       }
       if (pos.y < box.minY && pos.vy < 0 && !pos.entering) {
@@ -565,6 +588,7 @@ onMounted(async () => {
       if (pos.y >= 0) {
         pos.y = 0
         pos.impact = Math.max(pos.impact, pos.vy)
+        if (pos.vy > 150) sound.floppyThud(Math.min(1, pos.vy / 2000))
         act.squashUntil = now + 120
         if (pos.vy > 500) {
           pos.vy *= -FLOOR_BOUNCE
@@ -609,7 +633,7 @@ onMounted(async () => {
         const [from, to] = roamRange()
         walk.target = from + Math.random() * (to - from)
       }
-      const rect = canvas!.getBoundingClientRect()
+      const rect = hitRef.value!.getBoundingClientRect()
       hijack.x = approach(hijack.x, rect.left + rect.width * 0.72 + Math.sin(now / 90) * 10, 9, dt)
       hijack.y = approach(hijack.y, rect.top + rect.height * 0.12 + Math.cos(now / 70) * 8, 9, dt)
       fakeCursorRef.value?.style.setProperty('transform', `translate(${hijack.x}px, ${hijack.y}px)`)
@@ -630,7 +654,9 @@ onMounted(async () => {
       const distance = walk.target - pos.x
       const speed = isHijacking.value ? 260 : 90 + Math.abs(distance) * 0.5
       pos.x += Math.sign(distance) * Math.min(speed * dt, Math.abs(distance))
+      const stepBefore = Math.sign(Math.sin(walk.phase))
       walk.phase += dt * (isHijacking.value ? 16 : 9)
+      if (Math.sign(Math.sin(walk.phase)) !== stepBefore) sound.floppyStep()
       place()
     }
     const stride = walking ? Math.sin(walk.phase) : 0
@@ -688,6 +714,7 @@ onMounted(async () => {
   frame = requestAnimationFrame(render)
 
   cleanUp = () => {
+    stopWatchingVisible()
     cancelAnimationFrame(frame)
     window.removeEventListener('pointermove', onPointerMove)
     window.removeEventListener('keydown', onKeyDown)
@@ -696,6 +723,7 @@ onMounted(async () => {
   }
 })
 onBeforeUnmount(() => {
+  isUnmounted = true
   clearTimeout(quipTimer)
   isHijacking.value = false
   cleanUp?.()
@@ -706,13 +734,14 @@ onBeforeUnmount(() => {
   <div
     v-show="isVisible"
     ref="rootRef"
-    class="floppy pointer-events-auto absolute bottom-2 left-0 sm:left-2"
+    class="floppy pointer-events-auto absolute bottom-2 left-6 z-20 sm:left-8"
     role="complementary"
     :aria-label="copy.label"
   >
     <button
+      ref="hitRef"
       type="button"
-      class="relative block touch-none rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      class="relative block size-36 touch-none sm:size-40 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       :class="isHeld ? 'cursor-grabbing' : 'cursor-grab'"
       :aria-label="isBubbleOpen ? copy.close : copy.open"
       :aria-expanded="isBubbleOpen"
@@ -723,7 +752,7 @@ onBeforeUnmount(() => {
       @pointercancel="onPointerUp"
       @pointerenter="!isSleeping && feel('happy', 1200)"
     >
-      <canvas ref="canvasRef" class="block size-36 sm:size-40" />
+      <canvas ref="canvasRef" class="pointer-events-none absolute -inset-1/4 block size-[150%]" />
       <span v-if="isSleeping" class="zzz pointer-events-none absolute right-4 top-2 font-mono text-sm font-bold text-highlighted" aria-hidden="true">
         <span>z</span><span>z</span><span>Z</span>
       </span>
