@@ -213,12 +213,12 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       camera.lookAt(cameraTarget)
     }
 
-    // A warm spotlight that travels with the camera from step to step and flickers now and then (soft dips, never a strobe).
+    // A warm spotlight that travels with the camera from step to step.
     // Only the light, no lamp. The room has its own light.
     const spotlight = new THREE.SpotLight('#ffe3c2', 0, 9, Math.PI / 5, 0.45)
     scene.add(spotlight, spotlight.target)
     const spotlightWanted = new THREE.Vector3()
-    function updateSpotlight(seconds: number) {
+    function updateSpotlight() {
       const isLit = step.value.world !== 'room' && !isDiving
       // Above the target, a little towards the viewer, scaled with the camera distance so far shots get a wide pool.
       offset.subVectors(basePosition, cameraTarget).setY(0)
@@ -228,10 +228,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       spotlight.position.lerp(spotlightWanted, prefersReducedMotion ? 1 : 0.08)
       spotlight.target.position.lerp(cameraTarget, prefersReducedMotion ? 1 : 0.08)
       spotlight.distance = Math.max(9, distance * 2)
-      const noise = Math.sin(seconds * 23) * Math.sin(seconds * 7.3) * Math.sin(seconds * 3.1)
-      const level = !prefersReducedMotion && noise > 0.55 ? 0.45 + 0.3 * Math.sin(seconds * 60) : 1
       const power = 160 * (distance / 4) ** 2
-      spotlight.intensity = isLit ? power * level : 0
+      spotlight.intensity = isLit ? power : 0
     }
 
     // Step changes: same world = fly, other world = fade through black, intro to 1950 = dive into the screen.
@@ -380,7 +378,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
         }
       }
       applyView(now / 1000)
-      updateSpotlight(now / 1000)
+      updateSpotlight()
       road?.update(now / 1000)
       desk?.pulseCables(now / 1000)
       updateScreenRect()
