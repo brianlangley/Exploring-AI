@@ -221,6 +221,7 @@ export const en = {
     hide: 'Hide Floppy',
     next: 'Next',
     quips: {
+      hello: 'Hi, I\'m Floppy! I hold 1.44 MB. Pick me up if you like, I don\'t bite.',
       poke: [
         'Hey! Vintage hardware. Handle with care.',
         'Poke me again and I\'ll format myself.',
@@ -233,6 +234,13 @@ export const en = {
         'Take your time. I\'ve been waiting since 1987.',
       ],
       wake: 'Huh? I wasn\'t asleep. I was... spinning down.',
+      drop: [
+        'Hey! I\'m a disk, not a frisbee.',
+        'Ow. I think I lost a sector.',
+        'Gentle! There\'s data in here.',
+      ],
+      hijack: 'My turn. I\'ll drive for a bit.',
+      hijackEnd: 'Here, have your mouse back. Barely used.',
     },
     tips: {
       intro: 'Hi, I\'m Floppy. I hold 1.44 MB. Press Enter and we go into the computer.',

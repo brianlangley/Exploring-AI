@@ -221,6 +221,7 @@ export const nl: Messages = {
     hide: 'Verberg Floppy',
     next: 'Verder',
     quips: {
+      hello: 'Hoi, ik ben Floppy! Ik pas 1,44 MB. Pak me gerust op, ik bijt niet.',
       poke: [
         'Hé! Vintage hardware. Voorzichtig.',
         'Nog één keer porren en ik formatteer mezelf.',
@@ -233,6 +234,13 @@ export const nl: Messages = {
         'Neem je tijd. Ik wacht al sinds 1987.',
       ],
       wake: 'Hè? Ik sliep niet. Ik was even... aan het afkoelen.',
+      drop: [
+        'Hé! Ik ben een diskette, geen frisbee.',
+        'Au. Ik ben vast een sector kwijt.',
+        'Voorzichtig! Er zit data in mij.',
+      ],
+      hijack: 'Mijn beurt. Ik rijd even.',
+      hijackEnd: 'Hier, je muis terug. Nauwelijks gebruikt.',
     },
     tips: {
       intro: 'Hoi, ik ben Floppy. Ik pas 1,44 MB. Druk op Enter, dan gaan we de computer in.',
