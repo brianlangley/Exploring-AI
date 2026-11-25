@@ -1,0 +1,72 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Own dark palette, close to the feel of the app but not LM Studio's brand (they publish none, see PLAN.md section 7).
+   Only defined here, picked as primary in app.config.ts. */
+@theme static {
+  /* PLAN-v3 section 11: calm sans for text, tight sans for headlines, serif for big years and numbers. */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Instrument Sans', 'Inter', ui-sans-serif, sans-serif;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-terminal: 'VT323', ui-monospace, monospace;
+
+  /* Green phosphor of an old CRT, only for the intro terminal and the retro room. */
+  --color-phosphor-300: #7dffa0;
+  --color-phosphor-500: #33ff66;
+  --color-phosphor-950: #050805;
+
+  --color-glow-50: #f1eeff;
+  --color-glow-100: #e4defe;
+  --color-glow-200: #cbbffd;
+  --color-glow-300: #ab97fb;
+  --color-glow-400: #8d6ff7;
+  --color-glow-500: #7550f0;
+  --color-glow-600: #6338e0;
+  --color-glow-700: #522cbd;
+  --color-glow-800: #43269a;
+  --color-glow-900: #37227c;
+  --color-glow-950: #211348;
+}
+
+/* Near black with warm off-white text; violet stays for things you can click (400 passes contrast). */
+.dark {
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-bg: #0a0a0b;
+  --ui-bg-muted: #121214;
+  --ui-bg-elevated: #161618;
+  --ui-bg-accented: #1e1e21;
+  --ui-text-highlighted: #f2efe9;
+  --ui-text: #d8d4cc;
+  --ui-text-toned: #bdb8af;
+  --ui-text-muted: #9b978f;
+  --ui-text-dimmed: #77746e;
+  --ui-border: rgb(255 255 255 / 0.08);
+  --ui-border-muted: rgb(255 255 255 / 0.05);
+  --ui-border-accented: rgb(255 255 255 / 0.14);
+}
+
+html {
+  background: #0a0a0b;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+body {
+  background: transparent;
+}
+
+/* Frosted glass, like macOS panels: heavy blur, 1 px inner highlight, no visible border. */
+@utility glass {
+  background: rgb(16 16 18 / 0.64);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 30px 80px rgb(0 0 0 / 0.5);
+}
+
+/* Faint CRT scanlines, only over the history steps. */
+@utility scanlines {
+  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}

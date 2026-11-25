@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Nuxt build output
+.nuxt/
+.output/
+.data/
+.nitro/
+.cache/
+dist
+
+# Hosting
+.netlify/
+.wrangler/
+
+# Secrets, never commit
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and system
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local Claude Code settings
+.claude/
+
+# Original Sketchfab downloads (about 50 MB); the shrunk copies in public/models are what ships
+models-source/

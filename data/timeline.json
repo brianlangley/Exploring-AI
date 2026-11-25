@@ -1,0 +1,75 @@
+{
+  "notes": "PLAN-v2 section 2. Check every date against the source before presenting.",
+  "milestones": [
+    {
+      "year": "1950",
+      "event": "Alan Turing asks \"Can machines think?\" (the Turing test)",
+      "source": "https://en.wikipedia.org/wiki/Computing_Machinery_and_Intelligence",
+      "eventNl": "Alan Turing vraagt: \"Kunnen machines denken?\" (de Turingtest)",
+      "yearNl": "1950"
+    },
+    {
+      "year": "1956",
+      "event": "Dartmouth workshop: the term \"artificial intelligence\" is born",
+      "source": "https://en.wikipedia.org/wiki/Dartmouth_workshop",
+      "eventNl": "Dartmouth-workshop: de term \"kunstmatige intelligentie\" is geboren",
+      "yearNl": "1956"
+    },
+    {
+      "year": "1966",
+      "event": "ELIZA, the first chatbot, runs on a room sized computer",
+      "source": "https://en.wikipedia.org/wiki/ELIZA",
+      "eventNl": "ELIZA, de eerste chatbot, draait op een computer zo groot als een kamer",
+      "yearNl": "1966"
+    },
+    {
+      "year": "1970s",
+      "event": "AI winters: promises outrun the hardware",
+      "source": "https://en.wikipedia.org/wiki/AI_winter",
+      "eventNl": "AI-winters: de beloftes lopen voor op de hardware",
+      "yearNl": "jaren 70"
+    },
+    {
+      "year": "1997",
+      "event": "IBM Deep Blue beats chess champion Garry Kasparov",
+      "source": "https://en.wikipedia.org/wiki/Deep_Blue_versus_Garry_Kasparov",
+      "eventNl": "IBM Deep Blue verslaat schaakkampioen Garry Kasparov",
+      "yearNl": "1997"
+    },
+    {
+      "year": "2012",
+      "event": "AlexNet: deep learning on GPUs takes off",
+      "source": "https://en.wikipedia.org/wiki/AlexNet",
+      "eventNl": "AlexNet: deep learning op videokaarten breekt door",
+      "yearNl": "2012"
+    },
+    {
+      "year": "2017",
+      "event": "Google publishes the Transformer (\"Attention Is All You Need\")",
+      "source": "https://arxiv.org/abs/1706.03762",
+      "eventNl": "Google publiceert de Transformer (\"Attention Is All You Need\")",
+      "yearNl": "2017"
+    },
+    {
+      "year": "2022",
+      "event": "ChatGPT launches: AI goes mainstream, in the cloud",
+      "source": "https://en.wikipedia.org/wiki/ChatGPT",
+      "eventNl": "ChatGPT verschijnt: AI wordt mainstream, in de cloud",
+      "yearNl": "2022"
+    },
+    {
+      "year": "2023",
+      "event": "llama.cpp and open models run AI on a laptop; LM Studio launches",
+      "source": "https://lmstudio.ai/blog/free-for-work",
+      "eventNl": "llama.cpp en open modellen draaien AI op een laptop; LM Studio verschijnt",
+      "yearNl": "2023"
+    },
+    {
+      "year": "2026",
+      "event": "LM Studio 0.4.28: Qwen3.8 and Gemma 4 run on your own desk",
+      "source": "https://lmstudio.ai/changelog/lmstudio",
+      "eventNl": "LM Studio 0.4.28: Qwen3.8 en Gemma 4 draaien op je eigen bureau",
+      "yearNl": "2026"
+    }
+  ]
+}

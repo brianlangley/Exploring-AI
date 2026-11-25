@@ -1,0 +1,75 @@
+{
+  "notes": "Mirror of public/models/CREDITS.md, shown on the site. Keep both in sync.",
+  "models": [
+    {
+      "name": "Computer Terminal",
+      "author": "Chris Sweetwood",
+      "url": "https://sketchfab.com/3d-models/computer-terminal-b3a26b00c5b04eedad0a1cdca884130f",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "name": "Plugboard - \"Ancient\" Coding",
+      "author": "museudocomputador",
+      "url": "https://sketchfab.com/3d-models/plugboard-ancient-coding-b483e91712804a7bb387969c6d054870",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Old Computers",
+      "author": "Rafael Rodrigues",
+      "url": "https://sketchfab.com/3d-models/old-computers-7bb6e720499a467b8e0427451d180063",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "GeForce RTX 3080 Graphics Card",
+      "author": "_surovic_",
+      "url": "https://sketchfab.com/3d-models/geforce-rtx-3080-graphics-card-8b947ee1bf7a4e3d8ffa1c24893ac160",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Rak Server",
+      "author": "katashofi",
+      "url": "https://sketchfab.com/3d-models/rak-server-5dff62add9294d9fae66cabd04458a83",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Gaming Desktop PC",
+      "author": "Yolala1232",
+      "url": "https://sketchfab.com/3d-models/gaming-desktop-pc-d1d8282c9916438091f11aeb28787b66",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Floppy Disk",
+      "author": "Nyangire",
+      "url": "https://sketchfab.com/3d-models/floppy-disk-42e1e3a4e80443b8ac72fd55d988153e",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Phone",
+      "author": "schmoldt.art",
+      "url": "https://sketchfab.com/3d-models/phone-eaa0a0cbce964b2099b955f5ea241eee",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Smart Home",
+      "author": "greekisback",
+      "url": "https://sketchfab.com/3d-models/smart-home-64dc5db388794716ad6d97c97697d2e7",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "name": "Raspberry Pi 3",
+      "author": "JoSaCo",
+      "url": "https://sketchfab.com/3d-models/raspberry-pi-3-2d308283fc0f4d27b81f17a2793c5c4d",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/"
+    }
+  ]
+}
