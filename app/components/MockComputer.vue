@@ -9,7 +9,18 @@ const { messages } = useLocale()
 const copy = computed(() => messages.value.mock)
 
 const frameStyle = computed(() => screenTransform.value
-  ? { left: '0px', top: '0px', width: `${MOCK_WIDTH}px`, height: `${MOCK_HEIGHT}px`, transform: screenTransform.value }
+  ? {
+      left: '0px',
+      top: '0px',
+      width: `${MOCK_WIDTH}px`,
+      height: `${MOCK_HEIGHT}px`,
+      transform: screenTransform.value,
+      // Safari paints text under a perspective matrix3d with clipped glyphs (squashed lines) unless the element
+      // has its own compositing layer: rasterize it flat, then let the GPU warp it.
+      willChange: 'transform',
+      backfaceVisibility: 'hidden' as const,
+      WebkitBackfaceVisibility: 'hidden' as const,
+    }
   : undefined)
 
 const isAppStage = computed(() => ['discover', 'load', 'chat', 'server'].includes(stage.value))
