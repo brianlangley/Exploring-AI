@@ -6,7 +6,7 @@ Unofficial student project. Not affiliated with, sponsored or endorsed by LM Stu
 
 ## Read first
 
-- `PLAN-v3.md`: the current plan (presentation route, 3D models, review decisions in section 9, status in section 10, design proposal in section 11). PLAN.md and PLAN-v2.md are background; PLAN-draft.md is an older copy of PLAN.md.
+- `PLAN-v3.md`: the current plan (presentation route, 3D models, review decisions in section 9, status in sections 10 and 12 (12 is the latest), design in section 11). PLAN.md and PLAN-v2.md are background; PLAN-draft.md is an older copy of PLAN.md.
 
 - `PLAN.md`: full plan, site map, Three.js scene, device check logic, verified models, brand rules, timeline, what is still needed
 - `data/models.json`: verified model list (25 Nov 2026) that drives the device check and model picker

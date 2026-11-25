@@ -11,11 +11,8 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  // Always dark: the desk scene and all contrast checks are made for a dark page.
-  colorMode: {
-    preference: 'dark',
-    fallback: 'dark',
-  },
+  // One fixed theme, no light/dark switching: the palette lives on :root in main.css.
+  ui: { colorMode: false },
 
   app: {
     head: {

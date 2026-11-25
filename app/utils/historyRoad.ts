@@ -50,16 +50,12 @@ export async function buildHistoryRoad(THREE: ThreeModule): Promise<HistoryRoad>
     loadModel(THREE, 'gpu.glb', 2.1).catch(() => undefined),
   ])
 
-  // 1950: the plugboard lies flat in the file; stand it up on a plinth so the plugs face the camera.
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.6), new THREE.MeshStandardMaterial({ color: '#111418', roughness: 0.6 }))
-  plinth.position.y = 0.45
+  // 1950: the plugboard lies flat in the file; tilt it up so the plugs face the camera, lowest point on the floor.
   plugboard.holder.rotation.x = Math.PI / 2.6
-  plugboard.holder.position.set(0, 0.95, -0.1)
-  stations.plugboard.add(plinth, plugboard.holder)
-  // A warm spot on the board, like a museum piece.
-  const spot = new THREE.PointLight('#ffe3c2', 6, 6)
-  spot.position.set(0.8, 2.4, 1.6)
-  stations.plugboard.add(spot)
+  plugboard.holder.updateMatrixWorld(true)
+  plugboard.holder.position.set(0, -new THREE.Box3().setFromObject(plugboard.holder).min.y, -0.1)
+  stations.plugboard.add(plugboard.holder)
+  // Light comes from the stage spotlight that follows every step (usePresentationStage).
 
   // 1966–1997: the room of machines, its CRTs showing ELIZA and chess.
   const eliza = createTerminalTexture(THREE)

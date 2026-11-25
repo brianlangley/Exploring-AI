@@ -9,7 +9,7 @@ const { messages } = useLocale()
   <div class="fixed inset-0 z-0 bg-[#030405]" aria-hidden="true">
     <canvas
       ref="canvasRef"
-      class="block size-full transition-opacity duration-700 motion-reduce:transition-none"
+      class="block size-full cursor-grab touch-none transition-opacity duration-700 motion-reduce:transition-none"
       :class="isReady ? 'opacity-100' : 'opacity-0'"
     />
     <p v-if="!isReady && !isStageUnavailable" class="absolute inset-x-0 bottom-28 text-center font-terminal text-xl text-phosphor-500/70">
@@ -30,6 +30,11 @@ const { messages } = useLocale()
         <div class="scan-line absolute inset-x-0 h-1 bg-phosphor-300" />
       </div>
     </Transition>
+
+    <!-- Up against the glass: CRT scanlines and phosphor glow, kept on through the scan so it feels like one dive. -->
+    <Transition leave-active-class="transition-opacity duration-500" leave-to-class="opacity-0">
+      <div v-if="transition === 'crt' || transition === 'scan'" class="crt pointer-events-none absolute inset-0" />
+    </Transition>
   </div>
 </template>
 
@@ -46,6 +51,18 @@ const { messages } = useLocale()
 .scan-line {
   box-shadow: 0 0 24px var(--color-phosphor-500);
   animation: line-sweep 0.9s linear forwards;
+}
+
+.crt {
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.45) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--color-phosphor-500) 22%, transparent) 0%, rgb(0 0 0 / 0.75) 100%);
+  animation: crt-in 0.5s ease-in forwards;
+}
+
+@keyframes crt-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Grid opens from the centre outwards. */

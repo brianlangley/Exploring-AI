@@ -1,7 +1,7 @@
 import { PRESENTATION_STEPS } from '~/utils/presentationSteps'
 
 // Black fade between worlds, or the dive into the terminal screen with the grid scan.
-export type StageTransition = 'none' | 'fade' | 'scan'
+export type StageTransition = 'none' | 'fade' | 'crt' | 'scan'
 
 // Shared state of the presentation route: which step, and which transition the overlay should show.
 export function usePresentation() {

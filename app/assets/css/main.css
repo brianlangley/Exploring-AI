@@ -30,8 +30,13 @@
 }
 
 /* Near black with warm off-white text; violet stays for things you can click (400 passes contrast). */
-.dark {
+/* Fixed on :root so the system or a stored preference can never swap in a light palette. */
+:root {
+  color-scheme: dark;
   --ui-primary: var(--ui-color-primary-400);
+  --ui-bg-inverted: var(--ui-color-neutral-100);
+  --ui-text-inverted: var(--ui-color-neutral-900);
+  --ui-border-inverted: var(--ui-color-neutral-100);
   --ui-bg: #0a0a0b;
   --ui-bg-muted: #121214;
   --ui-bg-elevated: #161618;

@@ -105,10 +105,11 @@ export async function buildTerminalRoom(THREE: ThreeModule): Promise<TerminalRoo
   }
   setLines([''], true)
 
-  // Screen sits high on the front of the terminal; measured in the browser, relative to the terminal bounds.
+  // The CRT sits high and left of centre on the front (the right holds the drive bay); measured in the browser, relative to the terminal bounds.
   const terminalBounds = new THREE.Box3().setFromObject(holder)
   const screenCenter = new THREE.Vector3(
-    (terminalBounds.min.x + terminalBounds.max.x) / 2,
+    // 0.17 units left: the model is scaled to 1 unit wide, so this is 17% of the terminal.
+    (terminalBounds.min.x + terminalBounds.max.x) / 2 - 0.17,
     terminalBounds.min.y + (terminalBounds.max.y - terminalBounds.min.y) * 0.72,
     terminalBounds.max.z,
   )

@@ -242,3 +242,29 @@ Proposal:
 5. Motion: slow ease-out (0.8–1.2 s) for camera and panels, text fades up 12 px, nothing bounces; reduced motion respected.
 6. Retro layer: subtle scanlines and film grain only on the route's history steps, CRT vignette on the terminal, step counter as `STAP 06 / 15` in VT323.
 7. Read page: sticky section titles, scroll-revealed rows, the 3D PC as a still image at the top instead of no picture.
+
+---
+
+## 12. Status after the polish pass of 25 November 2026 (late evening) — read this first when taking over
+
+Section 11 (fonts, palette, glass panels) is built; see `app/assets/css/main.css`. Changes in this pass, all on `/`:
+
+Theme
+- One fixed dark theme, no light/dark mode ever. `nuxt.config.ts` has `ui: { colorMode: false }`; the palette lives on `:root` in `main.css` (with `color-scheme: dark`). Before this, a stored or system "light" preference swapped in Nuxt UI's light text colours (dark text on the glass panels, white bubble tail on Floppy). Do not bring back `colorMode` or `.dark` selectors.
+
+Camera (`app/composables/usePresentationStage.ts`)
+- Moves (`moveTo`, `snapTo`) drive a base pose (`basePosition` + `cameraTarget`). Every frame `applyView()` puts the real camera on top: drag orbit + idle sway. Never write `camera.position` directly; write the base pose.
+- Orbit: left-drag on the canvas turns around the step's target (pitch clamped), stays until the next step, which eases it back to 0. Idle sway when not dragging. Both off on the demo step (`panel: 'screen'`, the HTML mock is laid over the projected monitor) and sway off with reduced motion.
+- Load on a room step: camera starts at the step's wide pose and rolls in to a seated close-up of the CRT (`poseFor()`, `LOAD_ZOOM_SECONDS`). Fades back into the room (end step, going back) also use the seated pose.
+- Intro → 1950 dive: lean into the CRT while the FOV narrows (40 → 22) → `transition = 'crt'` (scanlines + phosphor vignette overlay) → `'scan'` (phosphor grid + code rain) → snap far back with FOV 105 and rush in to the plugboard while FOV returns to 40 ("sucked into the machine"). Overlays in `PresentationStage.vue`; `StageTransition` in `usePresentation.ts` now has `'crt'`.
+- `room.screenCenter` (`terminalRoom.ts`) is the CRT itself, 0.17 units left of the terminal's centre (the right side is the drive bay).
+
+Light
+- One warm stage spotlight follows the camera target to every road and desk step (above the target, a bit towards the viewer, power scaled with camera distance), with soft flicker dips (no strobe, none with reduced motion). Light only, no lamp mesh. Off in the room (it has its own spot) and during the dive.
+
+History road (`app/utils/historyRoad.ts`)
+- 1950: the dark box plinth under the plugboard is gone; the board is tilted up and its lowest point sits on the floor (measured with `Box3` after rotating).
+
+Checked in the browser: theme colours, seated intro, full dive sequence, plugboard lit, drag orbit, spotlight on 2012 and the desk. `npm run lint` clean. Not checked: touch devices (canvas has `touch-none`, pointer events should cover it), `npm run build` after this pass, typecheck (needs `vue-tsc`, not installed).
+
+Still open: everything in section 10 "Still open".

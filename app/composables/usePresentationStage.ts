@@ -10,6 +10,9 @@ const MOVE_SECONDS = 1.5
 const FADE_SECONDS = 0.35
 const DIVE_SECONDS = 1.1
 const SCAN_SECONDS = 0.9
+const ARRIVAL_SECONDS = 1.8
+const LOAD_ZOOM_SECONDS = 2.4
+const BASE_FOV = 40
 const STATION_FADE_SECONDS = 1.2
 const TYPE_SECONDS_PER_CHARACTER = 0.06
 const GLOW_COLORS = { 'runs-well': '#33ff66', 'runs-slower': '#ffb020', 'too-big': '#ff4d4d', 'unknown': '#7550f0' } as const
@@ -60,7 +63,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     const scene = new THREE.Scene()
     scene.fog = new THREE.Fog('#030405', 12, 45)
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 200)
+    const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 200)
 
     // The room comes first (it is on screen at once); the other worlds load in the background.
     const room = await buildTerminalRoom(THREE).catch(() => undefined)
@@ -90,16 +93,26 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       desk.setDevicesVisible(step.value.id === 'further')
     }).catch(() => {})
 
-    // Camera pose helpers.
+    // Camera pose helpers. Moves drive the base pose; the orbit (drag + idle sway) is layered on top each frame.
     const cameraTarget = new THREE.Vector3()
+    const basePosition = new THREE.Vector3()
     function poseVectors(pose: CameraPose) {
       return { position: new THREE.Vector3(...pose.position), target: new THREE.Vector3(...pose.target) }
     }
+    function setFov(fov: number) {
+      camera.fov = fov
+      camera.updateProjectionMatrix()
+    }
+    // Room steps: sit right in front of the CRT, eyes a little above it, keyboard at the bottom of the view.
+    function poseFor(target: typeof steps[number]): CameraPose {
+      if (target.world !== 'room' || !room) return target.camera
+      const screen = room.screenCenter.clone().add(room.group.position)
+      return { position: [screen.x, screen.y + 0.04, screen.z + 0.95], target: [screen.x, screen.y - 0.1, screen.z] }
+    }
     function snapTo(pose: CameraPose) {
       const { position, target } = poseVectors(pose)
-      camera.position.copy(position)
+      basePosition.copy(position)
       cameraTarget.copy(target)
-      camera.lookAt(cameraTarget)
     }
 
     let moves: Move[] = []
@@ -109,14 +122,13 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       return move
     }
     function moveTo(pose: CameraPose, seconds = MOVE_SECONDS, done?: () => void) {
-      const fromPosition = camera.position.clone()
+      const fromPosition = basePosition.clone()
       const fromTarget = cameraTarget.clone()
       const { position, target } = poseVectors(pose)
       play(seconds, (progress) => {
         const eased = ease(progress)
-        camera.position.lerpVectors(fromPosition, position, eased)
+        basePosition.lerpVectors(fromPosition, position, eased)
         cameraTarget.lerpVectors(fromTarget, target, eased)
-        camera.lookAt(cameraTarget)
       }, done)
     }
 
@@ -159,6 +171,69 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     }
     const stopWatchingSpecs = watch(specs, applyGlow, { deep: true })
 
+    // Orbit: drag to turn around what the step looks at; let go and it stays, a new step eases it back.
+    // Without a drag the view drifts a little, unless the visitor asks for reduced motion.
+    const orbit = { yaw: 0, pitch: 0, wantedYaw: 0, wantedPitch: 0 }
+    let drag: { x: number, y: number, yaw: number, pitch: number } | undefined
+    let isDiving = false
+    // The demo step lays the HTML screen over the 3D monitor, so its view must hold still.
+    const isViewLocked = () => step.value.panel === 'screen'
+    function onPointerDown(event: PointerEvent) {
+      if (event.button !== 0 || isViewLocked()) return
+      drag = { x: event.clientX, y: event.clientY, yaw: orbit.wantedYaw, pitch: orbit.wantedPitch }
+      canvas!.setPointerCapture(event.pointerId)
+      canvas!.style.cursor = 'grabbing'
+    }
+    function onPointerMove(event: PointerEvent) {
+      if (!drag) return
+      orbit.wantedYaw = drag.yaw - (event.clientX - drag.x) * 0.006
+      orbit.wantedPitch = Math.max(-0.5, Math.min(0.6, drag.pitch + (event.clientY - drag.y) * 0.004))
+    }
+    function onPointerUp() {
+      drag = undefined
+      canvas!.style.cursor = ''
+    }
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointercancel', onPointerUp)
+    const offset = new THREE.Vector3()
+    const spherical = new THREE.Spherical()
+    function applyView(seconds: number) {
+      const follow = prefersReducedMotion ? 1 : 0.12
+      orbit.yaw += (orbit.wantedYaw - orbit.yaw) * follow
+      orbit.pitch += (orbit.wantedPitch - orbit.pitch) * follow
+      const isMoving = transition.value !== 'none'
+      const sway = drag || isMoving || isViewLocked() || prefersReducedMotion ? 0 : 1
+      offset.subVectors(basePosition, cameraTarget)
+      spherical.setFromVector3(offset)
+      spherical.theta += orbit.yaw + sway * Math.sin(seconds * 0.35) * 0.035
+      spherical.phi = Math.max(0.15, Math.min(Math.PI - 0.15, spherical.phi - orbit.pitch + sway * Math.sin(seconds * 0.27) * 0.015))
+      camera.position.copy(cameraTarget).add(offset.setFromSpherical(spherical))
+      camera.lookAt(cameraTarget)
+    }
+
+    // A warm spotlight that travels with the camera from step to step and flickers now and then (soft dips, never a strobe).
+    // Only the light, no lamp. The room has its own light.
+    const spotlight = new THREE.SpotLight('#ffe3c2', 0, 9, Math.PI / 5, 0.45)
+    scene.add(spotlight, spotlight.target)
+    const spotlightWanted = new THREE.Vector3()
+    function updateSpotlight(seconds: number) {
+      const isLit = step.value.world !== 'room' && !isDiving
+      // Above the target, a little towards the viewer, scaled with the camera distance so far shots get a wide pool.
+      offset.subVectors(basePosition, cameraTarget).setY(0)
+      const distance = basePosition.distanceTo(cameraTarget)
+      offset.setLength(Math.min(distance * 0.25, 1.5))
+      spotlightWanted.copy(cameraTarget).add(offset).setY(cameraTarget.y + Math.max(2.4, distance * 0.5))
+      spotlight.position.lerp(spotlightWanted, prefersReducedMotion ? 1 : 0.08)
+      spotlight.target.position.lerp(cameraTarget, prefersReducedMotion ? 1 : 0.08)
+      spotlight.distance = Math.max(9, distance * 2)
+      const noise = Math.sin(seconds * 23) * Math.sin(seconds * 7.3) * Math.sin(seconds * 3.1)
+      const level = !prefersReducedMotion && noise > 0.55 ? 0.45 + 0.3 * Math.sin(seconds * 60) : 1
+      const power = 160 * (distance / 4) ** 2
+      spotlight.intensity = isLit ? power * level : 0
+    }
+
     // Step changes: same world = fly, other world = fade through black, intro to 1950 = dive into the screen.
     let stepStart = performance.now()
     function goToStep(newIndex: number, oldIndex: number) {
@@ -166,6 +241,10 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       const oldStep = steps[oldIndex]!
       stepStart = performance.now()
       moves = []
+      setFov(BASE_FOV)
+      isDiving = false
+      orbit.wantedYaw = 0
+      orbit.wantedPitch = 0
       screenRect.value = null
       desk?.setDevicesVisible(newStep.id === 'further')
       revealAllStationsUpTo()
@@ -177,14 +256,24 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       }
       const isDive = oldStep.id === 'intro' && newStep.world === 'road' && room
       if (isDive && !prefersReducedMotion) {
+        // 1. Lean into the CRT while the lens zooms; scanlines take over the view near the glass.
         const screen = room.screenCenter.clone().add(room.group.position)
-        moveTo({ position: [screen.x, screen.y, screen.z + 0.08], target: [screen.x, screen.y, screen.z - 1] }, DIVE_SECONDS, () => {
+        isDiving = true
+        play(DIVE_SECONDS, progress => setFov(BASE_FOV - 18 * ease(progress)))
+        play(DIVE_SECONDS * 0.55, () => {}, () => {
+          transition.value = 'crt'
+        })
+        moveTo({ position: [screen.x, screen.y, screen.z + 0.06], target: [screen.x, screen.y, screen.z - 1] }, DIVE_SECONDS, () => {
+          // 2. Inside the machine: phosphor grid and code rain.
           transition.value = 'scan'
           play(SCAN_SECONDS / 2, () => {}, () => {
-            // Arrive above the road, behind the first station, then glide in.
+            // 3. Sucked through: far back with a very wide lens, rushing in to the first station.
             const arrival = poseVectors(newStep.camera)
-            snapTo({ position: [arrival.position.x, arrival.position.y + 3, arrival.position.z + 8], target: newStep.camera.target })
-            moveTo(newStep.camera, MOVE_SECONDS)
+            snapTo({ position: [arrival.position.x, arrival.position.y + 2, arrival.position.z + 16], target: newStep.camera.target })
+            setFov(105)
+            isDiving = false
+            play(ARRIVAL_SECONDS, progress => setFov(105 - (105 - BASE_FOV) * ease(progress)))
+            moveTo(newStep.camera, ARRIVAL_SECONDS)
             revealStation()
             play(SCAN_SECONDS / 2, () => {}, () => {
               transition.value = 'none'
@@ -195,7 +284,7 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       }
       transition.value = 'fade'
       play(FADE_SECONDS, () => {}, () => {
-        snapTo(newStep.camera)
+        snapTo(poseFor(newStep))
         revealStation(true)
         play(FADE_SECONDS, () => {}, () => {
           transition.value = 'none'
@@ -273,7 +362,9 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
       if (!current || current.left !== rect.left || current.top !== rect.top || current.width !== rect.width || current.height !== rect.height) screenRect.value = rect
     }
 
+    // On load the camera starts wide and rolls up to the terminal, as if you pull up a chair.
     snapTo(step.value.camera)
+    if (step.value.world === 'room') moveTo(poseFor(step.value), LOAD_ZOOM_SECONDS)
     let frame = 0
     let lastTerminalDraw = 0
     function render(now: number) {
@@ -288,6 +379,8 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
           move.done?.()
         }
       }
+      applyView(now / 1000)
+      updateSpotlight(now / 1000)
       road?.update(now / 1000)
       desk?.pulseCables(now / 1000)
       updateScreenRect()
@@ -300,10 +393,14 @@ export function usePresentationStage(canvasRef: Ref<HTMLCanvasElement | null>) {
     }
     frame = requestAnimationFrame(render)
     isReady.value = true
-    if (import.meta.dev) Object.assign(window, { __stage: { THREE, camera, cameraTarget, scene, snapTo, goTo: (index: number) => { stepIndex.value = index } } })
+    if (import.meta.dev) Object.assign(window, { __stage: { THREE, camera, cameraTarget, scene, room, snapTo, goTo: (index: number) => { stepIndex.value = index } } })
 
     cleanUp = () => {
       cancelAnimationFrame(frame)
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerUp)
       stopWatchingSpecs()
       stopWatchingStep()
       renderer.dispose()
